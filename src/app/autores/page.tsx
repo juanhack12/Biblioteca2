@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useEffect, useState, useCallback } from 'react';
@@ -9,6 +10,8 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { PlusCircle, Loader2 } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import axios from 'axios'; // Added import for axios
+import { API_BASE_URL } from '@/lib/api-config'; // Added import for API_BASE_URL
 
 export default function AutoresPage() {
   const [autores, setAutores] = useState<AutoresModel[]>([]);
@@ -25,9 +28,27 @@ export default function AutoresPage() {
     try {
       const data = await getAllAutores();
       setAutores(data);
-    } catch (err) {
-      toast({ title: "Error", description: "Error al cargar autores.", variant: "destructive" });
-      console.error(err);
+    } catch (error: any) {
+      let description = "Error al cargar autores. Por favor, inténtalo de nuevo más tarde.";
+      if (axios.isAxiosError(error)) {
+        if (error.response) {
+          // The request was made and the server responded with a status code
+          // that falls out of the range of 2xx
+          description = `Error del servidor (${error.response.status}). No se pudieron cargar los autores.`;
+        } else if (error.request) {
+          // The request was made but no response was received
+          description = `Error de red al cargar autores. Verifica tu conexión y que el servidor API (${API_BASE_URL}) esté accesible.`;
+        } else {
+          // Something happened in setting up the request that triggered an Error
+          description = `Error de configuración al cargar autores: ${error.message}`;
+        }
+      } else {
+        // Non-Axios error
+        console.error("Non-Axios error in loadAutores:", error);
+        description = "Ocurrió un error inesperado al cargar los autores.";
+      }
+      toast({ title: "Error de Carga", description, variant: "destructive" });
+      console.error("Full error details (loadAutores):", error);
     } finally {
       setLoading(false);
     }
