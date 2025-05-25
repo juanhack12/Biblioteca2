@@ -15,6 +15,7 @@ import { Input } from '@/components/ui/input';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { libroAutorSchema } from '@/lib/schemas';
+import { z } from 'zod';
 
 // LibroAutorForm Component
 interface LibroAutorFormProps {
@@ -28,76 +29,46 @@ function LibroAutorForm({ currentData, onSubmit, onCancel, isSubmitting }: Libro
   const form = useForm<LibroAutoresFormValues>({
     resolver: zodResolver(libroAutorSchema),
     defaultValues: {
-      idLibro: currentData?.idLibro ?? undefined,
-      idAutor: currentData?.idAutor ?? undefined,
+      idLibro: currentData?.idLibro?.toString() ?? '',
+      idAutor: currentData?.idAutor?.toString() ?? '',
       rol: currentData?.rol || '',
     },
   });
 
   useEffect(() => {
     if (currentData) {
-      form.reset(currentData);
+      form.reset({
+        idLibro: currentData.idLibro.toString(),
+        idAutor: currentData.idAutor.toString(),
+        rol: currentData.rol,
+      });
     } else {
-      form.reset({ idLibro: undefined, idAutor: undefined, rol: '' });
+      form.reset({ idLibro: '', idAutor: '', rol: '' });
     }
   }, [currentData, form]);
 
   const handleSubmit = async (data: LibroAutoresFormValues) => {
-     const payload = {
-      ...data,
-      idLibro: Number(data.idLibro),
-      idAutor: Number(data.idAutor),
-    };
-    await onSubmit(payload);
+    // Zod coerce.number will handle conversion
+    await onSubmit(data);
   };
 
   return (
     <Card className="max-w-2xl mx-auto">
-      <CardHeader>
-        <CardTitle>{currentData ? 'Editar Relación Libro-Autor' : 'Crear Nueva Relación'}</CardTitle>
-      </CardHeader>
+      <CardHeader><CardTitle>{currentData ? 'Editar Relación Libro-Autor' : 'Crear Nueva Relación'}</CardTitle></CardHeader>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(handleSubmit)}>
           <CardContent className="space-y-6">
             <FormField
               control={form.control}
               name="idLibro"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>ID Libro</FormLabel>
-                  <FormControl>
-                    <Input type="number" placeholder="Ej: 1" {...field} readOnly={!!currentData} className={currentData ? 'bg-muted' : ''} onChange={e => field.onChange(Number(e.target.value))} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+              render={({ field }) => (<FormItem><FormLabel>ID Libro</FormLabel><FormControl><Input type="number" placeholder="Ej: 1" {...field} readOnly={!!currentData} className={currentData ? 'bg-muted' : ''} onChange={e => field.onChange(e.target.value)} value={field.value ?? ''}/></FormControl><FormMessage /></FormItem>)}
             />
             <FormField
               control={form.control}
               name="idAutor"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>ID Autor</FormLabel>
-                  <FormControl>
-                    <Input type="number" placeholder="Ej: 1" {...field} readOnly={!!currentData} className={currentData ? 'bg-muted' : ''} onChange={e => field.onChange(Number(e.target.value))} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+              render={({ field }) => (<FormItem><FormLabel>ID Autor</FormLabel><FormControl><Input type="number" placeholder="Ej: 1" {...field} readOnly={!!currentData} className={currentData ? 'bg-muted' : ''} onChange={e => field.onChange(e.target.value)} value={field.value ?? ''}/></FormControl><FormMessage /></FormItem>)}
             />
-            <FormField
-              control={form.control}
-              name="rol"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Rol</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Ej: Autor Principal" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <FormField control={form.control} name="rol" render={({ field }) => (<FormItem><FormLabel>Rol</FormLabel><FormControl><Input placeholder="Ej: Autor Principal" {...field} value={field.value ?? ''}/></FormControl><FormMessage /></FormItem>)} />
           </CardContent>
           <CardFooter className="flex justify-end space-x-4">
             <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>Cancelar</Button>
@@ -170,16 +141,21 @@ export default function LibroAutoresPage() {
   const handleSubmit = async (formData: LibroAutoresFormValues) => {
     setIsSubmitting(true);
     try {
+      const coercedData = libroAutorSchema.parse(formData);
       if (currentItem) { // Editing existing relation
-        await updateLibroAutor(formData.idLibro, formData.idAutor, formData.rol);
+        await updateLibroAutor(coercedData.idLibro, coercedData.idAutor, coercedData.rol);
         toast({ title: "Éxito", description: "Relación actualizada." });
       } else { // Creating new relation
-        await createLibroAutor(formData.idLibro, formData.idAutor, formData.rol);
+        await createLibroAutor(coercedData.idLibro, coercedData.idAutor, coercedData.rol);
         toast({ title: "Éxito", description: "Relación creada." });
       }
       setShowForm(false); setCurrentItem(null); loadData();
     } catch (err: any) {
-      toast({ title: "Error", description: err.message || "Error al guardar la relación.", variant: "destructive" });
+      if (err instanceof z.ZodError) {
+        toast({ title: "Error de Validación", description: err.errors.map(e => e.message).join(', '), variant: "destructive"});
+      } else {
+        toast({ title: "Error", description: err.message || "Error al guardar la relación.", variant: "destructive" });
+      }
     } finally {
       setIsSubmitting(false);
     }

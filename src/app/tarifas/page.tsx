@@ -28,45 +28,38 @@ function TarifaForm({ currentData, onSubmit, onCancel, isSubmitting }: TarifaFor
   const form = useForm<TarifasFormValues>({
     resolver: zodResolver(tarifaSchema),
     defaultValues: {
-      idPrestamo: currentData?.idPrestamo ?? undefined,
-      diasRetraso: currentData?.diasRetraso ?? undefined,
-      montoTarifa: currentData?.montoTarifa ?? undefined,
+      idPrestamo: currentData?.idPrestamo?.toString() ?? '',
+      diasRetraso: currentData?.diasRetraso?.toString() ?? '',
+      montoTarifa: currentData?.montoTarifa?.toString() ?? '',
     },
   });
 
   useEffect(() => {
     if (currentData) {
       form.reset({
-        idPrestamo: Number(currentData.idPrestamo),
-        diasRetraso: Number(currentData.diasRetraso),
-        montoTarifa: Number(currentData.montoTarifa),
+        idPrestamo: currentData.idPrestamo.toString(),
+        diasRetraso: currentData.diasRetraso.toString(),
+        montoTarifa: currentData.montoTarifa.toString(),
       });
     } else {
-      form.reset({ idPrestamo: undefined, diasRetraso: undefined, montoTarifa: undefined });
+      form.reset({ idPrestamo: '', diasRetraso: '', montoTarifa: '' });
     }
   }, [currentData, form]);
 
   const handleSubmit = async (data: TarifasFormValues) => {
-     const payload = {
-      ...data,
-      idPrestamo: Number(data.idPrestamo),
-      diasRetraso: Number(data.diasRetraso),
-      montoTarifa: Number(data.montoTarifa),
-    };
-    await onSubmit(payload, currentData?.idTarifa);
+    // Zod coerce.number will handle conversion
+    await onSubmit(data, currentData?.idTarifa);
   };
 
   return (
     <Card className="max-w-2xl mx-auto">
-      <CardHeader>
-        <CardTitle>{currentData ? 'Editar Tarifa' : 'Crear Nueva Tarifa'}</CardTitle>
-      </CardHeader>
+      <CardHeader><CardTitle>{currentData ? 'Editar Tarifa' : 'Crear Nueva Tarifa'}</CardTitle></CardHeader>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(handleSubmit)}>
           <CardContent className="space-y-6">
-            <FormField control={form.control} name="idPrestamo" render={({ field }) => ( <FormItem><FormLabel>ID Préstamo</FormLabel><FormControl><Input type="number" placeholder="Ej: 1" {...field} onChange={e => field.onChange(Number(e.target.value))}/></FormControl><FormMessage /></FormItem> )} />
-            <FormField control={form.control} name="diasRetraso" render={({ field }) => ( <FormItem><FormLabel>Días de Retraso</FormLabel><FormControl><Input type="number" placeholder="Ej: 5" {...field} onChange={e => field.onChange(Number(e.target.value))}/></FormControl><FormMessage /></FormItem> )} />
-            <FormField control={form.control} name="montoTarifa" render={({ field }) => ( <FormItem><FormLabel>Monto Tarifa</FormLabel><FormControl><Input type="number" step="0.01" placeholder="Ej: 2.50" {...field} onChange={e => field.onChange(Number(e.target.value))}/></FormControl><FormMessage /></FormItem> )} />
+            <FormField control={form.control} name="idPrestamo" render={({ field }) => (<FormItem><FormLabel>ID Préstamo</FormLabel><FormControl><Input type="number" placeholder="Ej: 1" {...field} onChange={e => field.onChange(e.target.value)} value={field.value ?? ''}/></FormControl><FormMessage /></FormItem> )} />
+            <FormField control={form.control} name="diasRetraso" render={({ field }) => (<FormItem><FormLabel>Días de Retraso</FormLabel><FormControl><Input type="number" placeholder="Ej: 5" {...field} onChange={e => field.onChange(e.target.value)} value={field.value ?? ''}/></FormControl><FormMessage /></FormItem> )} />
+            <FormField control={form.control} name="montoTarifa" render={({ field }) => (<FormItem><FormLabel>Monto Tarifa</FormLabel><FormControl><Input type="number" step="0.01" placeholder="Ej: 2.50" {...field} onChange={e => field.onChange(e.target.value)} value={field.value ?? ''}/></FormControl><FormMessage /></FormItem> )} />
           </CardContent>
           <CardFooter className="flex justify-end space-x-4">
             <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>Cancelar</Button>
@@ -139,16 +132,23 @@ export default function TarifasPage() {
   const handleSubmit = async (formData: TarifasFormValues, id?: number) => {
     setIsSubmitting(true);
     try {
+      // formData values are already strings from the form, Zod will coerce them
+      const coercedData = tarifaSchema.parse(formData);
+
       if (id) {
-        await updateTarifa(id, formData.idPrestamo, formData.diasRetraso, formData.montoTarifa);
+        await updateTarifa(id, coercedData.idPrestamo, coercedData.diasRetraso, coercedData.montoTarifa);
         toast({ title: "Éxito", description: "Tarifa actualizada." });
       } else {
-        await createTarifa(formData.idPrestamo, formData.diasRetraso, formData.montoTarifa);
+        await createTarifa(coercedData.idPrestamo, coercedData.diasRetraso, coercedData.montoTarifa);
         toast({ title: "Éxito", description: "Tarifa creada." });
       }
       setShowForm(false); setCurrentItem(null); loadData();
     } catch (err: any) {
-      toast({ title: "Error", description: err.message || "Error al guardar la tarifa.", variant: "destructive" });
+      if (err instanceof z.ZodError) {
+        toast({ title: "Error de Validación", description: err.errors.map(e => e.message).join(', '), variant: "destructive"});
+      } else {
+        toast({ title: "Error", description: err.message || "Error al guardar la tarifa.", variant: "destructive" });
+      }
     } finally {
       setIsSubmitting(false);
     }

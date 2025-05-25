@@ -20,6 +20,7 @@ import { prestamoSchema } from '@/lib/schemas';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { z } from 'zod';
 
 // PrestamoForm Component
 interface PrestamoFormProps {
@@ -33,9 +34,9 @@ function PrestamoForm({ currentData, onSubmit, onCancel, isSubmitting }: Prestam
   const form = useForm<PrestamosFormValues>({
     resolver: zodResolver(prestamoSchema),
     defaultValues: {
-      idLector: currentData?.idLector ?? undefined,
-      idBibliotecario: currentData?.idBibliotecario ?? undefined,
-      idEjemplar: currentData?.idEjemplar ?? undefined,
+      idLector: currentData?.idLector?.toString() ?? '',
+      idBibliotecario: currentData?.idBibliotecario?.toString() ?? '',
+      idEjemplar: currentData?.idEjemplar?.toString() ?? '',
       fechaPrestamo: currentData?.fechaPrestamo || '',
       fechaDevolucion: currentData?.fechaDevolucion || '',
     },
@@ -44,98 +45,40 @@ function PrestamoForm({ currentData, onSubmit, onCancel, isSubmitting }: Prestam
   useEffect(() => {
     if (currentData) {
       form.reset({
-        ...currentData,
-        idLector: Number(currentData.idLector),
-        idBibliotecario: Number(currentData.idBibliotecario),
-        idEjemplar: Number(currentData.idEjemplar),
+        idLector: currentData.idLector.toString(),
+        idBibliotecario: currentData.idBibliotecario.toString(),
+        idEjemplar: currentData.idEjemplar.toString(),
+        fechaPrestamo: currentData.fechaPrestamo,
+        fechaDevolucion: currentData.fechaDevolucion,
       });
     } else {
-      form.reset({ idLector: undefined, idBibliotecario: undefined, idEjemplar: undefined, fechaPrestamo: '', fechaDevolucion: '' });
+      form.reset({ idLector: '', idBibliotecario: '', idEjemplar: '', fechaPrestamo: '', fechaDevolucion: '' });
     }
   }, [currentData, form]);
 
   const handleSubmit = async (data: PrestamosFormValues) => {
-     const payload = {
-      ...data,
-      idLector: Number(data.idLector),
-      idBibliotecario: Number(data.idBibliotecario),
-      idEjemplar: Number(data.idEjemplar),
-    };
-    await onSubmit(payload, currentData?.idPrestamo);
+    // Zod coerce.number will handle conversion for IDs
+    await onSubmit(data, currentData?.idPrestamo);
   };
 
   return (
     <Card className="max-w-2xl mx-auto">
-      <CardHeader>
-        <CardTitle>{currentData ? 'Editar Préstamo' : 'Crear Nuevo Préstamo'}</CardTitle>
-      </CardHeader>
+      <CardHeader><CardTitle>{currentData ? 'Editar Préstamo' : 'Crear Nuevo Préstamo'}</CardTitle></CardHeader>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(handleSubmit)}>
           <CardContent className="space-y-6">
-            <FormField control={form.control} name="idLector" render={({ field }) => ( <FormItem><FormLabel>ID Lector</FormLabel><FormControl><Input type="number" placeholder="Ej: 1" {...field} onChange={e => field.onChange(Number(e.target.value))} /></FormControl><FormMessage /></FormItem> )} />
-            <FormField control={form.control} name="idBibliotecario" render={({ field }) => ( <FormItem><FormLabel>ID Bibliotecario</FormLabel><FormControl><Input type="number" placeholder="Ej: 1" {...field} onChange={e => field.onChange(Number(e.target.value))} /></FormControl><FormMessage /></FormItem> )} />
-            <FormField control={form.control} name="idEjemplar" render={({ field }) => ( <FormItem><FormLabel>ID Ejemplar</FormLabel><FormControl><Input type="number" placeholder="Ej: 1" {...field} onChange={e => field.onChange(Number(e.target.value))} /></FormControl><FormMessage /></FormItem> )} />
+            <FormField control={form.control} name="idLector" render={({ field }) => (<FormItem><FormLabel>ID Lector</FormLabel><FormControl><Input type="number" placeholder="Ej: 1" {...field} onChange={e => field.onChange(e.target.value)} value={field.value ?? ''}/></FormControl><FormMessage /></FormItem>)} />
+            <FormField control={form.control} name="idBibliotecario" render={({ field }) => (<FormItem><FormLabel>ID Bibliotecario</FormLabel><FormControl><Input type="number" placeholder="Ej: 1" {...field} onChange={e => field.onChange(e.target.value)} value={field.value ?? ''}/></FormControl><FormMessage /></FormItem>)} />
+            <FormField control={form.control} name="idEjemplar" render={({ field }) => (<FormItem><FormLabel>ID Ejemplar</FormLabel><FormControl><Input type="number" placeholder="Ej: 1" {...field} onChange={e => field.onChange(e.target.value)} value={field.value ?? ''}/></FormControl><FormMessage /></FormItem>)} />
             <FormField
               control={form.control}
               name="fechaPrestamo"
-              render={({ field }) => (
-                <FormItem className="flex flex-col">
-                  <FormLabel>Fecha de Préstamo</FormLabel>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button
-                          variant={"outline"}
-                          className={cn("w-full pl-3 text-left font-normal",!field.value && "text-muted-foreground")}
-                        >
-                          {field.value ? (format(new Date(field.value), "PPP", { locale: es })) : (<span>Seleccione una fecha</span>)}
-                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={field.value ? new Date(field.value) : undefined}
-                        onSelect={(date) => field.onChange(date ? format(date, "yyyy-MM-dd") : '')}
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
-                  <FormMessage />
-                </FormItem>
-              )}
+              render={({ field }) => (<FormItem className="flex flex-col"><FormLabel>Fecha de Préstamo</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("w-full pl-3 text-left font-normal",!field.value && "text-muted-foreground")}>{field.value ? (format(new Date(field.value), "PPP", { locale: es })) : (<span>Seleccione una fecha</span>)}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value ? new Date(field.value) : undefined} onSelect={(date) => field.onChange(date ? format(date, "yyyy-MM-dd") : '')} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>)}
             />
             <FormField
               control={form.control}
               name="fechaDevolucion"
-              render={({ field }) => (
-                <FormItem className="flex flex-col">
-                  <FormLabel>Fecha de Devolución</FormLabel>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button
-                          variant={"outline"}
-                          className={cn("w-full pl-3 text-left font-normal",!field.value && "text-muted-foreground")}
-                        >
-                          {field.value ? (format(new Date(field.value), "PPP", { locale: es })) : (<span>Seleccione una fecha</span>)}
-                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={field.value ? new Date(field.value) : undefined}
-                        onSelect={(date) => field.onChange(date ? format(date, "yyyy-MM-dd") : '')}
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
-                  <FormMessage />
-                </FormItem>
-              )}
+              render={({ field }) => (<FormItem className="flex flex-col"><FormLabel>Fecha de Devolución</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("w-full pl-3 text-left font-normal",!field.value && "text-muted-foreground")}>{field.value ? (format(new Date(field.value), "PPP", { locale: es })) : (<span>Seleccione una fecha</span>)}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value ? new Date(field.value) : undefined} onSelect={(date) => field.onChange(date ? format(date, "yyyy-MM-dd") : '')} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>)}
             />
           </CardContent>
           <CardFooter className="flex justify-end space-x-4">
@@ -214,16 +157,21 @@ export default function PrestamosPage() {
   const handleSubmit = async (formData: PrestamosFormValues, id?: number) => {
     setIsSubmitting(true);
     try {
+      const coercedData = prestamoSchema.parse(formData);
       if (id) {
-        await updatePrestamo(id, formData.idLector, formData.idBibliotecario, formData.idEjemplar, formData.fechaPrestamo, formData.fechaDevolucion);
+        await updatePrestamo(id, coercedData.idLector, coercedData.idBibliotecario, coercedData.idEjemplar, coercedData.fechaPrestamo, coercedData.fechaDevolucion);
         toast({ title: "Éxito", description: "Préstamo actualizado." });
       } else {
-        await createPrestamo(formData.idLector, formData.idBibliotecario, formData.idEjemplar, formData.fechaPrestamo, formData.fechaDevolucion);
+        await createPrestamo(coercedData.idLector, coercedData.idBibliotecario, coercedData.idEjemplar, coercedData.fechaPrestamo, coercedData.fechaDevolucion);
         toast({ title: "Éxito", description: "Préstamo creado." });
       }
       setShowForm(false); setCurrentItem(null); loadData();
     } catch (err: any) {
-      toast({ title: "Error", description: err.message || "Error al guardar el préstamo.", variant: "destructive" });
+       if (err instanceof z.ZodError) {
+        toast({ title: "Error de Validación", description: err.errors.map(e => e.message).join(', '), variant: "destructive"});
+      } else {
+        toast({ title: "Error", description: err.message || "Error al guardar el préstamo.", variant: "destructive" });
+      }
     } finally {
       setIsSubmitting(false);
     }

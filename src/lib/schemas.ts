@@ -9,7 +9,7 @@ export const autorSchema = z.object({
 });
 
 export const bibliotecarioSchema = z.object({
-  idPersona: z.number({ required_error: "ID Persona es requerido.", invalid_type_error: "ID Persona debe ser un número." })
+  idPersona: z.coerce.number({ required_error: "ID Persona es requerido.", invalid_type_error: "ID Persona debe ser un número." })
     .int("ID Persona debe ser un número entero.")
     .positive("ID Persona debe ser un número positivo."),
   fechaContratacion: z.string().optional().nullable().transform(val => val || undefined), // YYYY-MM-DD format
@@ -24,14 +24,14 @@ export const editorialSchema = z.object({
 });
 
 export const ejemplarSchema = z.object({
-  idLibro: z.number({ required_error: "ID Libro es requerido.", invalid_type_error: "ID Libro debe ser un número." })
+  idLibro: z.coerce.number({ required_error: "ID Libro es requerido.", invalid_type_error: "ID Libro debe ser un número." })
     .int("ID Libro debe ser un número entero.")
     .positive("ID Libro debe ser un número positivo."),
   ubicacion: z.string().min(1, "Ubicación es requerida."),
 });
 
 export const lectorSchema = z.object({
-  idPersona: z.number({ required_error: "ID Persona es requerido.", invalid_type_error: "ID Persona debe ser un número." })
+  idPersona: z.coerce.number({ required_error: "ID Persona es requerido.", invalid_type_error: "ID Persona debe ser un número." })
     .int("ID Persona debe ser un número entero.")
     .positive("ID Persona debe ser un número positivo."),
   fechaRegistro: z.string().optional().nullable().transform(val => val || undefined), // YYYY-MM-DD format
@@ -39,10 +39,10 @@ export const lectorSchema = z.object({
 });
 
 export const libroAutorSchema = z.object({
-  idLibro: z.number({ required_error: "ID Libro es requerido.", invalid_type_error: "ID Libro debe ser un número." })
+  idLibro: z.coerce.number({ required_error: "ID Libro es requerido.", invalid_type_error: "ID Libro debe ser un número." })
     .int("ID Libro debe ser un número entero.")
     .positive("ID Libro debe ser un número positivo."),
-  idAutor: z.number({ required_error: "ID Autor es requerido.", invalid_type_error: "ID Autor debe ser un número." })
+  idAutor: z.coerce.number({ required_error: "ID Autor es requerido.", invalid_type_error: "ID Autor debe ser un número." })
     .int("ID Autor debe ser un número entero.")
     .positive("ID Autor debe ser un número positivo."),
   rol: z.string().min(1, "Rol es requerido."),
@@ -51,7 +51,7 @@ export const libroAutorSchema = z.object({
 export const libroSchema = z.object({
   titulo: z.string().min(1, "Título es requerido."),
   anioPublicacion: z.string().min(4, "Año debe tener 4 dígitos.").max(4, "Año debe tener 4 dígitos.").regex(/^\d{4}$/, "Año inválido."),
-  idEditorial: z.number({ required_error: "ID Editorial es requerido.", invalid_type_error: "ID Editorial debe ser un número." })
+  idEditorial: z.coerce.number({ required_error: "ID Editorial es requerido.", invalid_type_error: "ID Editorial debe ser un número." })
     .int("ID Editorial debe ser un número entero.")
     .positive("ID Editorial debe ser un número positivo."),
 });
@@ -67,13 +67,13 @@ export const personaSchema = z.object({
 });
 
 export const prestamoSchema = z.object({
-  idLector: z.number({ required_error: "ID Lector es requerido.", invalid_type_error: "ID Lector debe ser un número." })
+  idLector: z.coerce.number({ required_error: "ID Lector es requerido.", invalid_type_error: "ID Lector debe ser un número." })
     .int("ID Lector debe ser un número entero.")
     .positive("ID Lector debe ser un número positivo."),
-  idBibliotecario: z.number({ required_error: "ID Bibliotecario es requerido.", invalid_type_error: "ID Bibliotecario debe ser un número." })
+  idBibliotecario: z.coerce.number({ required_error: "ID Bibliotecario es requerido.", invalid_type_error: "ID Bibliotecario debe ser un número." })
     .int("ID Bibliotecario debe ser un número entero.")
     .positive("ID Bibliotecario debe ser un número positivo."),
-  idEjemplar: z.number({ required_error: "ID Ejemplar es requerido.", invalid_type_error: "ID Ejemplar debe ser un número." })
+  idEjemplar: z.coerce.number({ required_error: "ID Ejemplar es requerido.", invalid_type_error: "ID Ejemplar debe ser un número." })
     .int("ID Ejemplar debe ser un número entero.")
     .positive("ID Ejemplar debe ser un número positivo."),
   fechaPrestamo: z.string().min(1, "Fecha de Préstamo es requerida."), // YYYY-MM-DD format
@@ -81,13 +81,13 @@ export const prestamoSchema = z.object({
 });
 
 export const tarifaSchema = z.object({
-  idPrestamo: z.number({ required_error: "ID Préstamo es requerido.", invalid_type_error: "ID Préstamo debe ser un número." })
+  idPrestamo: z.coerce.number({ required_error: "ID Préstamo es requerido.", invalid_type_error: "ID Préstamo debe ser un número." })
     .int("ID Préstamo debe ser un número entero.")
     .positive("ID Préstamo debe ser un número positivo."),
-  diasRetraso: z.number({ required_error: "Días de Retraso son requeridos.", invalid_type_error: "Días de Retraso debe ser un número." })
+  diasRetraso: z.coerce.number({ required_error: "Días de Retraso son requeridos.", invalid_type_error: "Días de Retraso debe ser un número." })
     .int("Días de Retraso debe ser un entero.")
     .min(0, "Días de Retraso no pueden ser negativos."),
-  montoTarifa: z.number({ required_error: "Monto de Tarifa es requerido.", invalid_type_error: "Monto de Tarifa debe ser un número." })
+  montoTarifa: z.coerce.number({ required_error: "Monto de Tarifa es requerido.", invalid_type_error: "Monto de Tarifa debe ser un número." })
     .min(0, "Monto de Tarifa no puede ser negativo."),
 });
 

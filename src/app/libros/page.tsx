@@ -16,6 +16,7 @@ import { Input } from '@/components/ui/input';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { libroSchema } from '@/lib/schemas';
+import { z } from 'zod';
 
 // LibroForm Component
 interface LibroFormProps {
@@ -29,61 +30,48 @@ interface LibroFormProps {
 function LibroForm({ currentData, initialValues, onSubmit, onCancel, isSubmitting }: LibroFormProps) {
   const form = useForm<LibrosFormValues>({
     resolver: zodResolver(libroSchema),
-    defaultValues: initialValues || {
-      titulo: currentData?.titulo || '',
-      anioPublicacion: currentData?.anioPublicacion || '',
-      idEditorial: currentData?.idEditorial ?? undefined,
+    defaultValues: {
+      titulo: initialValues?.titulo || currentData?.titulo || '',
+      anioPublicacion: initialValues?.anioPublicacion || currentData?.anioPublicacion || '',
+      idEditorial: initialValues?.idEditorial?.toString() || currentData?.idEditorial?.toString() || '',
     },
   });
 
   useEffect(() => {
-    if (initialValues) {
+    if (initialValues && Object.keys(initialValues).length > 0) {
        form.reset({
         titulo: initialValues.titulo || '',
         anioPublicacion: initialValues.anioPublicacion || '',
-        idEditorial: initialValues.idEditorial ? Number(initialValues.idEditorial) : undefined,
+        idEditorial: initialValues.idEditorial?.toString() || '',
       });
     } else if (currentData) {
       form.reset({
         titulo: currentData.titulo,
         anioPublicacion: currentData.anioPublicacion,
-        idEditorial: currentData.idEditorial ? Number(currentData.idEditorial) : undefined,
+        idEditorial: currentData.idEditorial.toString(),
       });
     } else {
-      form.reset({ titulo: '', anioPublicacion: '', idEditorial: undefined });
+      form.reset({ titulo: '', anioPublicacion: '', idEditorial: '' });
     }
   }, [currentData, initialValues, form]);
 
   const handleSubmit = async (data: LibrosFormValues) => {
-     const payload = {
-      ...data,
-      idEditorial: Number(data.idEditorial), // Ensure it's a number
-    };
-    await onSubmit(payload, currentData?.idLibro);
+    // Zod coerce.number will handle conversion for idEditorial
+    await onSubmit(data, currentData?.idLibro);
   };
 
   return (
     <Card className="max-w-2xl mx-auto">
-      <CardHeader>
-        <CardTitle>{currentData ? 'Editar Libro' : (initialValues?.titulo ? 'Crear Libro (Sugerencias IA)' : 'Crear Nuevo Libro')}</CardTitle>
-      </CardHeader>
+      <CardHeader><CardTitle>{currentData ? 'Editar Libro' : (initialValues?.titulo ? 'Crear Libro (Sugerencias IA)' : 'Crear Nuevo Libro')}</CardTitle></CardHeader>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(handleSubmit)}>
           <CardContent className="space-y-6">
-            <FormField control={form.control} name="titulo" render={({ field }) => ( <FormItem><FormLabel>Título</FormLabel><FormControl><Input placeholder="Ej: Cien Años de Soledad" {...field} /></FormControl><FormMessage /></FormItem> )} />
-            <FormField control={form.control} name="anioPublicacion" render={({ field }) => ( <FormItem><FormLabel>Año de Publicación</FormLabel><FormControl><Input type="text" maxLength={4} placeholder="Ej: 1967" {...field} /></FormControl><FormMessage /></FormItem> )} />
+            <FormField control={form.control} name="titulo" render={({ field }) => (<FormItem><FormLabel>Título</FormLabel><FormControl><Input placeholder="Ej: Cien Años de Soledad" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>)} />
+            <FormField control={form.control} name="anioPublicacion" render={({ field }) => (<FormItem><FormLabel>Año de Publicación</FormLabel><FormControl><Input type="text" maxLength={4} placeholder="Ej: 1967" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>)} />
             <FormField
               control={form.control}
               name="idEditorial"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>ID Editorial</FormLabel>
-                  <FormControl>
-                    <Input type="number" placeholder="Ej: 1" {...field} onChange={e => field.onChange(Number(e.target.value))} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+              render={({ field }) => (<FormItem><FormLabel>ID Editorial</FormLabel><FormControl><Input type="number" placeholder="Ej: 1" {...field} onChange={e => field.onChange(e.target.value)} value={field.value ?? ''}/></FormControl><FormMessage /></FormItem>)}
             />
           </CardContent>
           <CardFooter className="flex justify-end space-x-4">
@@ -147,16 +135,14 @@ export default function LibrosPage() {
   useEffect(() => {
     const prefillTitle = searchParams.get('title');
     const prefillYear = searchParams.get('year');
-    // Note: author, isbn, summary from AI are not directly part of LibrosModel for creation via this form.
-    // They could be used to prefill other related forms or displayed as additional info.
     if (prefillTitle) {
       setInitialFormValues({
         titulo: prefillTitle,
         anioPublicacion: prefillYear || '',
+        // idEditorial will be empty string by default if not provided
       });
-      setShowForm(true); // Open form if there are prefill values
-      // Optional: Clear query params after use
-      router.replace('/libros', undefined); 
+      setShowForm(true); 
+      router.replace('/libros', { scroll: false }); 
     }
   }, [searchParams, router]);
 
@@ -168,6 +154,7 @@ export default function LibrosPage() {
       setData(result);
     } catch (err) {
       toast({ title: "Error", description: "Error al cargar libros.", variant: "destructive" });
+      console.error("Error en loadData (Libros):", err);
     } finally {
       setLoading(false);
     }
@@ -178,16 +165,22 @@ export default function LibrosPage() {
   const handleSubmit = async (formData: LibrosFormValues, id?: number) => {
     setIsSubmitting(true);
     try {
+      const coercedData = libroSchema.parse(formData);
       if (id) {
-        await updateLibro(id, formData.titulo, formData.anioPublicacion, Number(formData.idEditorial));
+        await updateLibro(id, coercedData.titulo, coercedData.anioPublicacion, coercedData.idEditorial);
         toast({ title: "Éxito", description: "Libro actualizado." });
       } else {
-        await createLibro(formData.titulo, formData.anioPublicacion, Number(formData.idEditorial));
+        await createLibro(coercedData.titulo, coercedData.anioPublicacion, coercedData.idEditorial);
         toast({ title: "Éxito", description: "Libro creado." });
       }
       setShowForm(false); setCurrentItem(null); setInitialFormValues(undefined); loadData();
     } catch (err: any) {
-      toast({ title: "Error", description: err.message || "Error al guardar el libro.", variant: "destructive" });
+      if (err instanceof z.ZodError) {
+        toast({ title: "Error de Validación", description: err.errors.map(e => e.message).join(', '), variant: "destructive"});
+      } else {
+        toast({ title: "Error", description: err.message || "Error al guardar el libro.", variant: "destructive" });
+      }
+      console.error("Error en handleSubmit (Libros):", err);
     } finally {
       setIsSubmitting(false);
     }
