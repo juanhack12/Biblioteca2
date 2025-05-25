@@ -1,6 +1,7 @@
 // src/lib/api-config.ts
+import type { DateOnlyString } from '@/lib/types';
 
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000'; // Use environment variable
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://localhost:7245'; // Use environment variable
 
 // Función auxiliar para formatear DateOnlyString para input[type="date"] o API calls
 // Ensures that if a date string is provided, it's used, otherwise returns undefined.
