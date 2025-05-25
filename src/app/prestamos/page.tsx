@@ -169,8 +169,7 @@ function PrestamoList({ items, onEdit, onDelete }: PrestamoListProps) {
           <p className="text-muted-foreground">No hay préstamos registrados.</p>
         ) : (
           <div className="overflow-x-auto">
-            <Table>
-              <TableHeader><TableRow><TableHead>ID</TableHead><TableHead>ID Lector</TableHead><TableHead>ID Bibliotecario</TableHead><TableHead>ID Ejemplar</TableHead><TableHead>F. Préstamo</TableHead><TableHead>F. Devolución</TableHead><TableHead className="text-right">Acciones</TableHead></TableRow></TableHeader>
+            <Table><TableHeader><TableRow><TableHead>ID</TableHead><TableHead>ID Lector</TableHead><TableHead>ID Bibliotecario</TableHead><TableHead>ID Ejemplar</TableHead><TableHead>F. Préstamo</TableHead><TableHead>F. Devolución</TableHead><TableHead className="text-right">Acciones</TableHead></TableRow></TableHeader>
               <TableBody>
                 {items.map((item) => (
                   <TableRow key={item.idPrestamo}><TableCell>{item.idPrestamo}</TableCell><TableCell>{item.idLector}</TableCell><TableCell>{item.idBibliotecario}</TableCell><TableCell>{item.idEjemplar}</TableCell><TableCell>{formatDate(item.fechaPrestamo)}</TableCell><TableCell>{formatDate(item.fechaDevolucion)}</TableCell><TableCell className="text-right space-x-2">

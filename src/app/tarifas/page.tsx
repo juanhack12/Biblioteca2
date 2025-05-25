@@ -94,8 +94,7 @@ function TarifaList({ items, onEdit, onDelete }: TarifaListProps) {
           <p className="text-muted-foreground">No hay tarifas registradas.</p>
         ) : (
           <div className="overflow-x-auto">
-            <Table>
-              <TableHeader><TableRow><TableHead>ID Tarifa</TableHead><TableHead>ID Préstamo</TableHead><TableHead>Días Retraso</TableHead><TableHead>Monto Tarifa</TableHead><TableHead className="text-right">Acciones</TableHead></TableRow></TableHeader>
+            <Table><TableHeader><TableRow><TableHead>ID Tarifa</TableHead><TableHead>ID Préstamo</TableHead><TableHead>Días Retraso</TableHead><TableHead>Monto Tarifa</TableHead><TableHead className="text-right">Acciones</TableHead></TableRow></TableHeader>
               <TableBody>
                 {items.map((item) => (
                   <TableRow key={item.idTarifa}><TableCell>{item.idTarifa}</TableCell><TableCell>{item.idPrestamo}</TableCell><TableCell>{item.diasRetraso}</TableCell><TableCell>{item.montoTarifa.toFixed(2)}</TableCell><TableCell className="text-right space-x-2">

@@ -133,8 +133,7 @@ function PersonaList({ items, onEdit, onDelete }: PersonaListProps) {
           <p className="text-muted-foreground">No hay personas registradas.</p>
         ) : (
           <div className="overflow-x-auto">
-            <Table>
-              <TableHeader><TableRow><TableHead>ID</TableHead><TableHead>Nombre</TableHead><TableHead>Apellido</TableHead><TableHead>Documento</TableHead><TableHead>F. Nacimiento</TableHead><TableHead>Correo</TableHead><TableHead>Teléfono</TableHead><TableHead>Dirección</TableHead><TableHead className="text-right">Acciones</TableHead></TableRow></TableHeader>
+            <Table><TableHeader><TableRow><TableHead>ID</TableHead><TableHead>Nombre</TableHead><TableHead>Apellido</TableHead><TableHead>Documento</TableHead><TableHead>F. Nacimiento</TableHead><TableHead>Correo</TableHead><TableHead>Teléfono</TableHead><TableHead>Dirección</TableHead><TableHead className="text-right">Acciones</TableHead></TableRow></TableHeader>
               <TableBody>
                 {items.map((item) => (
                   <TableRow key={item.idPersona}><TableCell>{item.idPersona}</TableCell><TableCell>{item.nombre}</TableCell><TableCell>{item.apellido}</TableCell><TableCell>{item.documentoIdentidad}</TableCell><TableCell>{formatDate(item.fechaNacimiento)}</TableCell><TableCell>{item.correo}</TableCell><TableCell>{item.telefono}</TableCell><TableCell>{item.direccion}</TableCell><TableCell className="text-right space-x-2">

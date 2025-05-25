@@ -116,8 +116,7 @@ function EjemplarList({ items, onEdit, onDelete }: EjemplarListProps) {
           <p className="text-muted-foreground">No hay ejemplares registrados.</p>
         ) : (
           <div className="overflow-x-auto">
-            <Table>
-              <TableHeader><TableRow><TableHead>ID Ejemplar</TableHead><TableHead>ID Libro</TableHead><TableHead>Ubicación</TableHead><TableHead className="text-right">Acciones</TableHead></TableRow></TableHeader>
+            <Table><TableHeader><TableRow><TableHead>ID Ejemplar</TableHead><TableHead>ID Libro</TableHead><TableHead>Ubicación</TableHead><TableHead className="text-right">Acciones</TableHead></TableRow></TableHeader>
               <TableBody>
                 {items.map((item) => (
                   <TableRow key={item.idEjemplar}><TableCell>{item.idEjemplar}</TableCell><TableCell>{item.idLibro || 'N/A'}</TableCell><TableCell>{item.ubicacion}</TableCell><TableCell className="text-right space-x-2">

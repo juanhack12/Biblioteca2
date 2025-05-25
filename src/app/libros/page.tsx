@@ -112,8 +112,7 @@ function LibroList({ items, onEdit, onDelete }: LibroListProps) {
           <p className="text-muted-foreground">No hay libros registrados.</p>
         ) : (
           <div className="overflow-x-auto">
-            <Table>
-              <TableHeader><TableRow><TableHead>ID Libro</TableHead><TableHead>Título</TableHead><TableHead>Año Publicación</TableHead><TableHead>ID Editorial</TableHead><TableHead className="text-right">Acciones</TableHead></TableRow></TableHeader>
+            <Table><TableHeader><TableRow><TableHead>ID Libro</TableHead><TableHead>Título</TableHead><TableHead>Año Publicación</TableHead><TableHead>ID Editorial</TableHead><TableHead className="text-right">Acciones</TableHead></TableRow></TableHeader>
               <TableBody>
                 {items.map((item) => (
                   <TableRow key={item.idLibro}><TableCell>{item.idLibro}</TableCell><TableCell>{item.titulo}</TableCell><TableCell>{item.anioPublicacion}</TableCell><TableCell>{item.idEditorial}</TableCell><TableCell className="text-right space-x-2">

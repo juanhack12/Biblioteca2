@@ -86,8 +86,7 @@ function EditorialList({ items, onEdit, onDelete }: EditorialListProps) {
           <p className="text-muted-foreground">No hay editoriales registradas.</p>
         ) : (
           <div className="overflow-x-auto">
-            <Table>
-              <TableHeader><TableRow><TableHead>ID</TableHead><TableHead>Nombre</TableHead><TableHead>País</TableHead><TableHead>Ciudad</TableHead><TableHead>Sitio Web</TableHead><TableHead className="text-right">Acciones</TableHead></TableRow></TableHeader>
+            <Table><TableHeader><TableRow><TableHead>ID</TableHead><TableHead>Nombre</TableHead><TableHead>País</TableHead><TableHead>Ciudad</TableHead><TableHead>Sitio Web</TableHead><TableHead className="text-right">Acciones</TableHead></TableRow></TableHeader>
               <TableBody>
                 {items.map((item) => (
                   <TableRow key={item.idEditorial}><TableCell>{item.idEditorial}</TableCell><TableCell>{item.nombre}</TableCell><TableCell>{item.pais}</TableCell><TableCell>{item.ciudad}</TableCell><TableCell><a href={item.sitioWeb} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{item.sitioWeb}</a></TableCell><TableCell className="text-right space-x-2">

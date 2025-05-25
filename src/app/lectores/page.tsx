@@ -160,8 +160,7 @@ function LectorList({ items, onEdit, onDelete }: LectorListProps) {
           <p className="text-muted-foreground">No hay lectores registrados.</p>
         ) : (
           <div className="overflow-x-auto">
-            <Table>
-              <TableHeader><TableRow><TableHead>ID Lector</TableHead><TableHead>ID Persona</TableHead><TableHead>Fecha Registro</TableHead><TableHead>Ocupación</TableHead><TableHead className="text-right">Acciones</TableHead></TableRow></TableHeader>
+            <Table><TableHeader><TableRow><TableHead>ID Lector</TableHead><TableHead>ID Persona</TableHead><TableHead>Fecha Registro</TableHead><TableHead>Ocupación</TableHead><TableHead className="text-right">Acciones</TableHead></TableRow></TableHeader>
               <TableBody>
                 {items.map((item) => (
                   <TableRow key={item.idLector}><TableCell>{item.idLector}</TableCell><TableCell>{item.idPersona || 'N/A'}</TableCell><TableCell>{formatDate(item.fechaRegistro)}</TableCell><TableCell>{item.ocupacion}</TableCell><TableCell className="text-right space-x-2">

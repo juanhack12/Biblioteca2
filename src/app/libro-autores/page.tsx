@@ -125,8 +125,7 @@ function LibroAutorList({ items, onEdit, onDelete }: LibroAutorListProps) {
           <p className="text-muted-foreground">No hay relaciones registradas.</p>
         ) : (
           <div className="overflow-x-auto">
-            <Table>
-              <TableHeader><TableRow><TableHead>ID Libro</TableHead><TableHead>ID Autor</TableHead><TableHead>Rol</TableHead><TableHead className="text-right">Acciones</TableHead></TableRow></TableHeader>
+            <Table><TableHeader><TableRow><TableHead>ID Libro</TableHead><TableHead>ID Autor</TableHead><TableHead>Rol</TableHead><TableHead className="text-right">Acciones</TableHead></TableRow></TableHeader>
               <TableBody>
                 {items.map((item) => (
                   <TableRow key={`${item.idLibro}-${item.idAutor}`}><TableCell>{item.idLibro}</TableCell><TableCell>{item.idAutor}</TableCell><TableCell>{item.rol}</TableCell><TableCell className="text-right space-x-2">
