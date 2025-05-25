@@ -5,17 +5,17 @@ import React, { useEffect, useState, useCallback } from 'react';
 import type { EjemplaresModel, EjemplaresFormValues } from '@/lib/types';
 import { getAllEjemplares, createEjemplar, updateEjemplar, deleteEjemplar } from '@/lib/services/ejemplares';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { PlusCircle, Loader2, Book, Edit, Trash2 } from 'lucide-react';
+import { PlusCircle, Loader2, Book, Edit, Trash2, Search } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ejemplarSchema } from '@/lib/schemas';
-import { z } from 'zod'; // Added Zod import
+import { z } from 'zod'; 
 
 // EjemplarForm Component
 interface EjemplarFormProps {
@@ -37,7 +37,7 @@ function EjemplarForm({ currentData, onSubmit, onCancel, isSubmitting }: Ejempla
   useEffect(() => {
     if (currentData) {
       form.reset({
-        idLibro: currentData.idLibro.toString(),
+        idLibro: currentData.idLibro?.toString() ?? '',
         ubicacion: currentData.ubicacion,
       });
     } else {
@@ -110,7 +110,7 @@ function EjemplarList({ items, onEdit, onDelete }: EjemplarListProps) {
       <CardHeader><CardTitle>Lista de Ejemplares</CardTitle></CardHeader>
       <CardContent>
         {items.length === 0 ? (
-          <p className="text-muted-foreground">No hay ejemplares registrados.</p>
+          <p className="text-muted-foreground">No hay ejemplares registrados o que coincidan con la búsqueda.</p>
         ) : (
           <div className="overflow-x-auto">
             <Table><TableHeader><TableRow><TableHead>ID Ejemplar</TableHead><TableHead>ID Libro</TableHead><TableHead>Ubicación</TableHead><TableHead className="text-right">Acciones</TableHead></TableRow></TableHeader>
@@ -133,12 +133,14 @@ function EjemplarList({ items, onEdit, onDelete }: EjemplarListProps) {
 // EjemplaresPage Component
 export default function EjemplaresPage() {
   const [data, setData] = useState<EjemplaresModel[]>([]);
+  const [filteredData, setFilteredData] = useState<EjemplaresModel[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [currentItem, setCurrentItem] = useState<EjemplaresModel | null>(null);
   const [showForm, setShowForm] = useState<boolean>(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<boolean>(false);
   const [itemToDelete, setItemToDelete] = useState<number | null>(null);
+  const [searchTerm, setSearchTerm] = useState<string>('');
   const { toast } = useToast();
 
   const loadData = useCallback(async () => {
@@ -146,6 +148,7 @@ export default function EjemplaresPage() {
     try {
       const result = await getAllEjemplares();
       setData(result);
+      setFilteredData(result);
     } catch (err) {
       toast({ title: "Error", description: "Error al cargar ejemplares.", variant: "destructive" });
       console.error("Error en loadData (Ejemplares):", err);
@@ -155,6 +158,21 @@ export default function EjemplaresPage() {
   }, [toast]);
 
   useEffect(() => { loadData(); }, [loadData]);
+
+  useEffect(() => {
+    if (!searchTerm) {
+      setFilteredData(data);
+      return;
+    }
+    const lowercasedFilter = searchTerm.toLowerCase();
+    const filtered = data.filter(item => {
+      return (
+        item.ubicacion.toLowerCase().includes(lowercasedFilter) ||
+        (item.idLibro && item.idLibro.toString().includes(searchTerm))
+      );
+    });
+    setFilteredData(filtered);
+  }, [searchTerm, data]);
 
   const handleSubmit = async (formData: EjemplaresFormValues, id?: number) => {
     setIsSubmitting(true);
@@ -200,7 +218,7 @@ export default function EjemplaresPage() {
   const confirmDelete = (id: number) => { setItemToDelete(id); setShowDeleteConfirm(true); };
   const handleCancelForm = () => { setCurrentItem(null); setShowForm(false); };
 
-  if (loading && !showForm) return (
+  if (loading && !showForm && data.length === 0) return (
     <div className="flex justify-center items-center min-h-[calc(100vh-8rem)]">
       <Loader2 className="h-16 w-16 animate-spin text-primary" />
       <p className="ml-4 text-lg text-muted-foreground">Cargando ejemplares...</p>
@@ -214,7 +232,20 @@ export default function EjemplaresPage() {
         {!showForm && ( <Button onClick={handleAddNew} className="shadow-md"><PlusCircle className="mr-2 h-5 w-5" />Agregar Nuevo</Button> )}
       </div>
       {showForm ? ( <EjemplarForm currentData={currentItem} onSubmit={handleSubmit} onCancel={handleCancelForm} isSubmitting={isSubmitting} /> ) 
-      : ( <EjemplarList items={data} onEdit={handleEdit} onDelete={confirmDelete} /> )}
+      : ( 
+        <>
+          <div className="flex items-center gap-2">
+            <Search className="h-5 w-5 text-muted-foreground" />
+            <Input
+              placeholder="Buscar por ubicación o ID Libro..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="max-w-md"
+            />
+          </div>
+          <EjemplarList items={filteredData} onEdit={handleEdit} onDelete={confirmDelete} />
+        </>
+      )}
       <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
         <AlertDialogContent>
           <AlertDialogHeader><AlertDialogTitle>¿Confirmar eliminación?</AlertDialogTitle><AlertDialogDescription>Esta acción no se puede deshacer. ¿Seguro que quieres eliminar este ejemplar?</AlertDialogDescription></AlertDialogHeader>
@@ -224,5 +255,3 @@ export default function EjemplaresPage() {
     </div>
   );
 }
-
-    

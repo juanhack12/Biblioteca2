@@ -7,20 +7,23 @@ import { getAllAutores, createAutor, updateAutor, deleteAutor } from '@/lib/serv
 import { AutorList } from '@/components/lists/autor-list';
 import { AutorForm } from '@/components/forms/autor-form';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { PlusCircle, Loader2 } from 'lucide-react';
+import { PlusCircle, Loader2, Search } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import axios from 'axios'; // Added import for axios
-import { API_BASE_URL } from '@/lib/api-config'; // Added import for API_BASE_URL
+import axios from 'axios';
+import { API_BASE_URL } from '@/lib/api-config';
 
 export default function AutoresPage() {
   const [autores, setAutores] = useState<AutoresModel[]>([]);
+  const [filteredAutores, setFilteredAutores] = useState<AutoresModel[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [currentAutor, setCurrentAutor] = useState<AutoresModel | null>(null);
   const [showForm, setShowForm] = useState<boolean>(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<boolean>(false);
   const [autorToDelete, setAutorToDelete] = useState<number | null>(null);
+  const [searchTerm, setSearchTerm] = useState<string>('');
   const { toast } = useToast();
 
   const loadAutores = useCallback(async () => {
@@ -28,22 +31,18 @@ export default function AutoresPage() {
     try {
       const data = await getAllAutores();
       setAutores(data);
+      setFilteredAutores(data);
     } catch (error: any) {
       let description = "Error al cargar autores. Por favor, inténtalo de nuevo más tarde.";
       if (axios.isAxiosError(error)) {
         if (error.response) {
-          // The request was made and the server responded with a status code
-          // that falls out of the range of 2xx
           description = `Error del servidor (${error.response.status}). No se pudieron cargar los autores.`;
         } else if (error.request) {
-          // The request was made but no response was received
           description = `Error de red al cargar autores. Verifica tu conexión y que el servidor API (${API_BASE_URL}) esté accesible.`;
         } else {
-          // Something happened in setting up the request that triggered an Error
           description = `Error de configuración al cargar autores: ${error.message}`;
         }
       } else {
-        // Non-Axios error
         console.error("Non-Axios error in loadAutores:", error);
         description = "Ocurrió un error inesperado al cargar los autores.";
       }
@@ -58,10 +57,26 @@ export default function AutoresPage() {
     loadAutores();
   }, [loadAutores]);
 
+  useEffect(() => {
+    if (!searchTerm) {
+      setFilteredAutores(autores);
+      return;
+    }
+    const lowercasedFilter = searchTerm.toLowerCase();
+    const filtered = autores.filter(autor => {
+      return (
+        autor.nombre.toLowerCase().includes(lowercasedFilter) ||
+        autor.apellido.toLowerCase().includes(lowercasedFilter) ||
+        (autor.nacionalidad && autor.nacionalidad.toLowerCase().includes(lowercasedFilter))
+      );
+    });
+    setFilteredAutores(filtered);
+  }, [searchTerm, autores]);
+
   const handleSubmitAutor = async (data: AutoresFormValues, id?: number) => {
     setIsSubmitting(true);
     try {
-      const fechaNacimiento = data.fechaNacimiento || undefined; // Ensure undefined if empty/null
+      const fechaNacimiento = data.fechaNacimiento || undefined; 
       if (id) {
         await updateAutor(id, data.nombre, data.apellido, fechaNacimiento, data.nacionalidad);
         toast({ title: "Éxito", description: "Autor actualizado con éxito." });
@@ -71,7 +86,7 @@ export default function AutoresPage() {
       }
       setShowForm(false);
       setCurrentAutor(null);
-      loadAutores();
+      loadAutores(); 
     } catch (err) {
       toast({ title: "Error", description: "Error al guardar el autor.", variant: "destructive" });
       console.error(err);
@@ -86,7 +101,7 @@ export default function AutoresPage() {
     try {
       await deleteAutor(autorToDelete);
       toast({ title: "Éxito", description: "Autor eliminado con éxito." });
-      loadAutores();
+      loadAutores(); 
     } catch (err) {
       toast({ title: "Error", description: "Error al eliminar el autor.", variant: "destructive" });
       console.error(err);
@@ -117,7 +132,7 @@ export default function AutoresPage() {
     setShowForm(false);
   };
 
-  if (loading && !showForm) return (
+  if (loading && !showForm && autores.length === 0) return (
     <div className="flex justify-center items-center min-h-[calc(100vh-8rem)]">
       <Loader2 className="h-16 w-16 animate-spin text-primary" />
       <p className="ml-4 text-lg text-muted-foreground">Cargando autores...</p>
@@ -144,11 +159,22 @@ export default function AutoresPage() {
           isSubmitting={isSubmitting}
         />
       ) : (
-        <AutorList
-          autores={autores}
-          onEdit={handleEditAutor}
-          onDelete={confirmDelete}
-        />
+        <>
+          <div className="flex items-center gap-2">
+            <Search className="h-5 w-5 text-muted-foreground" />
+            <Input
+              placeholder="Buscar autores por nombre, apellido o nacionalidad..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="max-w-md"
+            />
+          </div>
+          <AutorList
+            autores={filteredAutores}
+            onEdit={handleEditAutor}
+            onDelete={confirmDelete}
+          />
+        </>
       )}
 
       <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>

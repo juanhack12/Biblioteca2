@@ -5,17 +5,17 @@ import React, { useEffect, useState, useCallback } from 'react';
 import type { TarifasModel, TarifasFormValues } from '@/lib/types';
 import { getAllTarifas, createTarifa, updateTarifa, deleteTarifa } from '@/lib/services/tarifas';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { PlusCircle, Loader2, CircleDollarSign, Edit, Trash2 } from 'lucide-react';
+import { PlusCircle, Loader2, CircleDollarSign, Edit, Trash2, Search } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { tarifaSchema } from '@/lib/schemas';
-import { z } from 'zod'; // Added Zod import
+import { z } from 'zod';
 
 // TarifaForm Component
 interface TarifaFormProps {
@@ -84,7 +84,7 @@ function TarifaList({ items, onEdit, onDelete }: TarifaListProps) {
       <CardHeader><CardTitle>Lista de Tarifas</CardTitle></CardHeader>
       <CardContent>
         {items.length === 0 ? (
-          <p className="text-muted-foreground">No hay tarifas registradas.</p>
+          <p className="text-muted-foreground">No hay tarifas registradas o que coincidan con la búsqueda.</p>
         ) : (
           <div className="overflow-x-auto">
             <Table><TableHeader><TableRow><TableHead>ID Tarifa</TableHead><TableHead>ID Préstamo</TableHead><TableHead>Días Retraso</TableHead><TableHead>Monto Tarifa</TableHead><TableHead className="text-right">Acciones</TableHead></TableRow></TableHeader>
@@ -107,12 +107,14 @@ function TarifaList({ items, onEdit, onDelete }: TarifaListProps) {
 // TarifasPage Component
 export default function TarifasPage() {
   const [data, setData] = useState<TarifasModel[]>([]);
+  const [filteredData, setFilteredData] = useState<TarifasModel[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [currentItem, setCurrentItem] = useState<TarifasModel | null>(null);
   const [showForm, setShowForm] = useState<boolean>(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<boolean>(false);
   const [itemToDelete, setItemToDelete] = useState<number | null>(null);
+  const [searchTerm, setSearchTerm] = useState<string>('');
   const { toast } = useToast();
 
   const loadData = useCallback(async () => {
@@ -120,6 +122,7 @@ export default function TarifasPage() {
     try {
       const result = await getAllTarifas();
       setData(result);
+      setFilteredData(result);
     } catch (err) {
       toast({ title: "Error", description: "Error al cargar tarifas.", variant: "destructive" });
       console.error("Error en loadData (Tarifas):", err);
@@ -129,6 +132,24 @@ export default function TarifasPage() {
   }, [toast]);
 
   useEffect(() => { loadData(); }, [loadData]);
+
+  useEffect(() => {
+    if (!searchTerm) {
+      setFilteredData(data);
+      return;
+    }
+    // No toLowerCase for IDs/numbers as they are numbers being converted to string for search
+    const filtered = data.filter(item => {
+      return (
+        item.idPrestamo.toString().includes(searchTerm) ||
+        item.diasRetraso.toString().includes(searchTerm) ||
+        item.montoTarifa.toString().includes(searchTerm) ||
+        item.idTarifa.toString().includes(searchTerm)
+      );
+    });
+    setFilteredData(filtered);
+  }, [searchTerm, data]);
+
 
   const handleSubmit = async (formData: TarifasFormValues, id?: number) => {
     setIsSubmitting(true);
@@ -175,7 +196,7 @@ export default function TarifasPage() {
   const confirmDelete = (id: number) => { setItemToDelete(id); setShowDeleteConfirm(true); };
   const handleCancelForm = () => { setCurrentItem(null); setShowForm(false); };
 
-  if (loading && !showForm) return (
+  if (loading && !showForm && data.length === 0) return (
     <div className="flex justify-center items-center min-h-[calc(100vh-8rem)]">
       <Loader2 className="h-16 w-16 animate-spin text-primary" />
       <p className="ml-4 text-lg text-muted-foreground">Cargando tarifas...</p>
@@ -189,7 +210,20 @@ export default function TarifasPage() {
         {!showForm && ( <Button onClick={handleAddNew} className="shadow-md"><PlusCircle className="mr-2 h-5 w-5" />Agregar Nueva</Button> )}
       </div>
       {showForm ? ( <TarifaForm currentData={currentItem} onSubmit={handleSubmit} onCancel={handleCancelForm} isSubmitting={isSubmitting} /> ) 
-      : ( <TarifaList items={data} onEdit={handleEdit} onDelete={confirmDelete} /> )}
+      : ( 
+        <>
+          <div className="flex items-center gap-2">
+            <Search className="h-5 w-5 text-muted-foreground" />
+            <Input
+              placeholder="Buscar por ID Préstamo, días, monto o ID Tarifa..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="max-w-md"
+            />
+          </div>
+          <TarifaList items={filteredData} onEdit={handleEdit} onDelete={confirmDelete} />
+        </>
+      )}
       <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
         <AlertDialogContent>
           <AlertDialogHeader><AlertDialogTitle>¿Confirmar eliminación?</AlertDialogTitle><AlertDialogDescription>Esta acción no se puede deshacer. ¿Seguro que quieres eliminar esta tarifa?</AlertDialogDescription></AlertDialogHeader>
@@ -199,5 +233,3 @@ export default function TarifasPage() {
     </div>
   );
 }
-
-    

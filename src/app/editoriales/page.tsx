@@ -5,16 +5,17 @@ import React, { useEffect, useState, useCallback } from 'react';
 import type { EditorialesModel, EditorialesFormValues } from '@/lib/types';
 import { getAllEditoriales, createEditorial, updateEditorial, deleteEditorial } from '@/lib/services/editoriales';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { PlusCircle, Loader2, Library, Edit, Trash2 } from 'lucide-react';
+import { PlusCircle, Loader2, Library, Edit, Trash2, Search } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { editorialSchema } from '@/lib/schemas';
+import { z } from 'zod';
 
 // EditorialForm Component
 interface EditorialFormProps {
@@ -83,7 +84,7 @@ function EditorialList({ items, onEdit, onDelete }: EditorialListProps) {
       <CardHeader><CardTitle>Lista de Editoriales</CardTitle></CardHeader>
       <CardContent>
         {items.length === 0 ? (
-          <p className="text-muted-foreground">No hay editoriales registradas.</p>
+          <p className="text-muted-foreground">No hay editoriales registradas o que coincidan con la búsqueda.</p>
         ) : (
           <div className="overflow-x-auto">
             <Table><TableHeader><TableRow><TableHead>ID</TableHead><TableHead>Nombre</TableHead><TableHead>País</TableHead><TableHead>Ciudad</TableHead><TableHead>Sitio Web</TableHead><TableHead className="text-right">Acciones</TableHead></TableRow></TableHeader>
@@ -106,12 +107,14 @@ function EditorialList({ items, onEdit, onDelete }: EditorialListProps) {
 // EditorialesPage Component
 export default function EditorialesPage() {
   const [data, setData] = useState<EditorialesModel[]>([]);
+  const [filteredData, setFilteredData] = useState<EditorialesModel[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [currentItem, setCurrentItem] = useState<EditorialesModel | null>(null);
   const [showForm, setShowForm] = useState<boolean>(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<boolean>(false);
   const [itemToDelete, setItemToDelete] = useState<number | null>(null);
+  const [searchTerm, setSearchTerm] = useState<string>('');
   const { toast } = useToast();
 
   const loadData = useCallback(async () => {
@@ -119,6 +122,7 @@ export default function EditorialesPage() {
     try {
       const result = await getAllEditoriales();
       setData(result);
+      setFilteredData(result);
     } catch (err) {
       toast({ title: "Error", description: "Error al cargar editoriales.", variant: "destructive" });
     } finally {
@@ -128,19 +132,41 @@ export default function EditorialesPage() {
 
   useEffect(() => { loadData(); }, [loadData]);
 
+  useEffect(() => {
+    if (!searchTerm) {
+      setFilteredData(data);
+      return;
+    }
+    const lowercasedFilter = searchTerm.toLowerCase();
+    const filtered = data.filter(item => {
+      return (
+        item.nombre.toLowerCase().includes(lowercasedFilter) ||
+        item.pais.toLowerCase().includes(lowercasedFilter) ||
+        item.ciudad.toLowerCase().includes(lowercasedFilter) ||
+        (item.sitioWeb && item.sitioWeb.toLowerCase().includes(lowercasedFilter))
+      );
+    });
+    setFilteredData(filtered);
+  }, [searchTerm, data]);
+
   const handleSubmit = async (formData: EditorialesFormValues, id?: number) => {
     setIsSubmitting(true);
     try {
+      const coercedData = editorialSchema.parse(formData);
       if (id) {
-        await updateEditorial(id, formData.nombre, formData.pais, formData.ciudad, formData.sitioWeb || null);
+        await updateEditorial(id, coercedData.nombre, coercedData.pais, coercedData.ciudad, coercedData.sitioWeb || null);
         toast({ title: "Éxito", description: "Editorial actualizada." });
       } else {
-        await createEditorial(formData.nombre, formData.pais, formData.ciudad, formData.sitioWeb || '');
+        await createEditorial(coercedData.nombre, coercedData.pais, coercedData.ciudad, coercedData.sitioWeb || '');
         toast({ title: "Éxito", description: "Editorial creada." });
       }
       setShowForm(false); setCurrentItem(null); loadData();
     } catch (err: any) {
-      toast({ title: "Error", description: err.message || "Error al guardar la editorial.", variant: "destructive" });
+      if (err instanceof z.ZodError) {
+        toast({ title: "Error de Validación", description: err.errors.map(e => e.message).join(', '), variant: "destructive"});
+      } else {
+        toast({ title: "Error", description: err.message || "Error al guardar la editorial.", variant: "destructive" });
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -165,7 +191,7 @@ export default function EditorialesPage() {
   const confirmDelete = (id: number) => { setItemToDelete(id); setShowDeleteConfirm(true); };
   const handleCancelForm = () => { setCurrentItem(null); setShowForm(false); };
 
-  if (loading && !showForm) return (
+  if (loading && !showForm && data.length === 0) return (
     <div className="flex justify-center items-center min-h-[calc(100vh-8rem)]">
       <Loader2 className="h-16 w-16 animate-spin text-primary" />
       <p className="ml-4 text-lg text-muted-foreground">Cargando editoriales...</p>
@@ -179,7 +205,20 @@ export default function EditorialesPage() {
         {!showForm && ( <Button onClick={handleAddNew} className="shadow-md"><PlusCircle className="mr-2 h-5 w-5" />Agregar Nueva</Button> )}
       </div>
       {showForm ? ( <EditorialForm currentData={currentItem} onSubmit={handleSubmit} onCancel={handleCancelForm} isSubmitting={isSubmitting} /> ) 
-      : ( <EditorialList items={data} onEdit={handleEdit} onDelete={confirmDelete} /> )}
+      : ( 
+        <>
+          <div className="flex items-center gap-2">
+            <Search className="h-5 w-5 text-muted-foreground" />
+            <Input
+              placeholder="Buscar editoriales..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="max-w-md"
+            />
+          </div>
+          <EditorialList items={filteredData} onEdit={handleEdit} onDelete={confirmDelete} />
+        </>
+      )}
       <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
         <AlertDialogContent>
           <AlertDialogHeader><AlertDialogTitle>¿Confirmar eliminación?</AlertDialogTitle><AlertDialogDescription>Esta acción no se puede deshacer. ¿Seguro que quieres eliminar esta editorial?</AlertDialogDescription></AlertDialogHeader>

@@ -5,22 +5,22 @@ import React, { useEffect, useState, useCallback } from 'react';
 import type { LibroAutoresModel, LibroAutoresFormValues } from '@/lib/types';
 import { getAllLibroAutores, createLibroAutor, updateLibroAutor, deleteLibroAutor } from '@/lib/services/libro-autores';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { PlusCircle, Loader2, Combine, Edit, Trash2 } from 'lucide-react';
+import { PlusCircle, Loader2, Combine, Edit, Trash2, Search } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { libroAutorSchema } from '@/lib/schemas';
-import { z } from 'zod'; // Added Zod import
+import { z } from 'zod';
 
 // LibroAutorForm Component
 interface LibroAutorFormProps {
   currentData?: LibroAutoresModel | null;
-  onSubmit: (data: LibroAutoresFormValues) => Promise<void>; // PK is composite, all fields needed for create/update
+  onSubmit: (data: LibroAutoresFormValues) => Promise<void>; 
   onCancel: () => void;
   isSubmitting: boolean;
 }
@@ -92,7 +92,7 @@ function LibroAutorList({ items, onEdit, onDelete }: LibroAutorListProps) {
       <CardHeader><CardTitle>Lista de Relaciones Libro-Autor</CardTitle></CardHeader>
       <CardContent>
         {items.length === 0 ? (
-          <p className="text-muted-foreground">No hay relaciones registradas.</p>
+          <p className="text-muted-foreground">No hay relaciones registradas o que coincidan con la búsqueda.</p>
         ) : (
           <div className="overflow-x-auto">
             <Table><TableHeader><TableRow><TableHead>ID Libro</TableHead><TableHead>ID Autor</TableHead><TableHead>Rol</TableHead><TableHead className="text-right">Acciones</TableHead></TableRow></TableHeader>
@@ -115,12 +115,14 @@ function LibroAutorList({ items, onEdit, onDelete }: LibroAutorListProps) {
 // LibroAutoresPage Component
 export default function LibroAutoresPage() {
   const [data, setData] = useState<LibroAutoresModel[]>([]);
+  const [filteredData, setFilteredData] = useState<LibroAutoresModel[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [currentItem, setCurrentItem] = useState<LibroAutoresModel | null>(null);
   const [showForm, setShowForm] = useState<boolean>(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<boolean>(false);
   const [itemToDelete, setItemToDelete] = useState<{idLibro: number, idAutor: number} | null>(null);
+  const [searchTerm, setSearchTerm] = useState<string>('');
   const { toast } = useToast();
 
   const loadData = useCallback(async () => {
@@ -128,6 +130,7 @@ export default function LibroAutoresPage() {
     try {
       const result = await getAllLibroAutores();
       setData(result);
+      setFilteredData(result);
     } catch (err) {
       toast({ title: "Error", description: "Error al cargar relaciones.", variant: "destructive" });
       console.error("Error en loadData (LibroAutores):", err);
@@ -137,15 +140,31 @@ export default function LibroAutoresPage() {
   }, [toast]);
 
   useEffect(() => { loadData(); }, [loadData]);
+  
+  useEffect(() => {
+    if (!searchTerm) {
+      setFilteredData(data);
+      return;
+    }
+    const lowercasedFilter = searchTerm.toLowerCase();
+    const filtered = data.filter(item => {
+      return (
+        item.rol.toLowerCase().includes(lowercasedFilter) ||
+        item.idLibro.toString().includes(searchTerm) ||
+        item.idAutor.toString().includes(searchTerm)
+      );
+    });
+    setFilteredData(filtered);
+  }, [searchTerm, data]);
 
   const handleSubmit = async (formData: LibroAutoresFormValues) => {
     setIsSubmitting(true);
     try {
       const coercedData = libroAutorSchema.parse(formData);
-      if (currentItem) { // Editing existing relation
+      if (currentItem) { 
         await updateLibroAutor(coercedData.idLibro, coercedData.idAutor, coercedData.rol);
         toast({ title: "Éxito", description: "Relación actualizada." });
-      } else { // Creating new relation
+      } else { 
         await createLibroAutor(coercedData.idLibro, coercedData.idAutor, coercedData.rol);
         toast({ title: "Éxito", description: "Relación creada." });
       }
@@ -182,7 +201,7 @@ export default function LibroAutoresPage() {
   const confirmDelete = (idLibro: number, idAutor: number) => { setItemToDelete({idLibro, idAutor}); setShowDeleteConfirm(true); };
   const handleCancelForm = () => { setCurrentItem(null); setShowForm(false); };
 
-  if (loading && !showForm) return (
+  if (loading && !showForm && data.length === 0) return (
     <div className="flex justify-center items-center min-h-[calc(100vh-8rem)]">
       <Loader2 className="h-16 w-16 animate-spin text-primary" />
       <p className="ml-4 text-lg text-muted-foreground">Cargando relaciones...</p>
@@ -196,7 +215,20 @@ export default function LibroAutoresPage() {
         {!showForm && ( <Button onClick={handleAddNew} className="shadow-md"><PlusCircle className="mr-2 h-5 w-5" />Agregar Nueva</Button> )}
       </div>
       {showForm ? ( <LibroAutorForm currentData={currentItem} onSubmit={handleSubmit} onCancel={handleCancelForm} isSubmitting={isSubmitting} /> ) 
-      : ( <LibroAutorList items={data} onEdit={handleEdit} onDelete={confirmDelete} /> )}
+      : ( 
+        <>
+          <div className="flex items-center gap-2">
+            <Search className="h-5 w-5 text-muted-foreground" />
+            <Input
+              placeholder="Buscar por rol, ID Libro o ID Autor..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="max-w-md"
+            />
+          </div>
+          <LibroAutorList items={filteredData} onEdit={handleEdit} onDelete={confirmDelete} />
+        </>
+      )}
       <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
         <AlertDialogContent>
           <AlertDialogHeader><AlertDialogTitle>¿Confirmar eliminación?</AlertDialogTitle><AlertDialogDescription>Esta acción no se puede deshacer. ¿Seguro que quieres eliminar esta relación?</AlertDialogDescription></AlertDialogHeader>
@@ -206,5 +238,3 @@ export default function LibroAutoresPage() {
     </div>
   );
 }
-
-    
