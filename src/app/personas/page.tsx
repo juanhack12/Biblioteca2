@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useEffect, useState, useCallback } from 'react';
@@ -136,13 +137,10 @@ function PersonaList({ items, onEdit, onDelete }: PersonaListProps) {
               <TableHeader><TableRow><TableHead>ID</TableHead><TableHead>Nombre</TableHead><TableHead>Apellido</TableHead><TableHead>Documento</TableHead><TableHead>F. Nacimiento</TableHead><TableHead>Correo</TableHead><TableHead>Teléfono</TableHead><TableHead>Dirección</TableHead><TableHead className="text-right">Acciones</TableHead></TableRow></TableHeader>
               <TableBody>
                 {items.map((item) => (
-                  <TableRow key={item.idPersona}>
-                    <TableCell>{item.idPersona}</TableCell><TableCell>{item.nombre}</TableCell><TableCell>{item.apellido}</TableCell><TableCell>{item.documentoIdentidad}</TableCell><TableCell>{formatDate(item.fechaNacimiento)}</TableCell><TableCell>{item.correo}</TableCell><TableCell>{item.telefono}</TableCell><TableCell>{item.direccion}</TableCell>
-                    <TableCell className="text-right space-x-2">
+                  <TableRow key={item.idPersona}><TableCell>{item.idPersona}</TableCell><TableCell>{item.nombre}</TableCell><TableCell>{item.apellido}</TableCell><TableCell>{item.documentoIdentidad}</TableCell><TableCell>{formatDate(item.fechaNacimiento)}</TableCell><TableCell>{item.correo}</TableCell><TableCell>{item.telefono}</TableCell><TableCell>{item.direccion}</TableCell><TableCell className="text-right space-x-2">
                       <Button variant="outline" size="icon" onClick={() => onEdit(item)} aria-label="Editar"><Edit className="h-4 w-4" /></Button>
                       <Button variant="destructive" size="icon" onClick={() => onDelete(item.idPersona)} aria-label="Eliminar"><Trash2 className="h-4 w-4" /></Button>
-                    </TableCell>
-                  </TableRow>
+                    </TableCell></TableRow>
                 ))}
               </TableBody>
             </Table>

@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useEffect, useState, useCallback } from 'react';
@@ -128,13 +129,10 @@ function LibroAutorList({ items, onEdit, onDelete }: LibroAutorListProps) {
               <TableHeader><TableRow><TableHead>ID Libro</TableHead><TableHead>ID Autor</TableHead><TableHead>Rol</TableHead><TableHead className="text-right">Acciones</TableHead></TableRow></TableHeader>
               <TableBody>
                 {items.map((item) => (
-                  <TableRow key={`${item.idLibro}-${item.idAutor}`}>
-                    <TableCell>{item.idLibro}</TableCell><TableCell>{item.idAutor}</TableCell><TableCell>{item.rol}</TableCell>
-                    <TableCell className="text-right space-x-2">
+                  <TableRow key={`${item.idLibro}-${item.idAutor}`}><TableCell>{item.idLibro}</TableCell><TableCell>{item.idAutor}</TableCell><TableCell>{item.rol}</TableCell><TableCell className="text-right space-x-2">
                       <Button variant="outline" size="icon" onClick={() => onEdit(item)} aria-label="Editar"><Edit className="h-4 w-4" /></Button>
                       <Button variant="destructive" size="icon" onClick={() => onDelete(item.idLibro, item.idAutor)} aria-label="Eliminar"><Trash2 className="h-4 w-4" /></Button>
-                    </TableCell>
-                  </TableRow>
+                    </TableCell></TableRow>
                 ))}
               </TableBody>
             </Table>

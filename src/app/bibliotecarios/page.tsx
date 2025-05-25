@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useEffect, useState, useCallback } from 'react';
@@ -165,29 +166,17 @@ function BibliotecarioList({ items, onEdit, onDelete }: BibliotecarioListProps) 
         ) : (
           <div className="overflow-x-auto">
             <Table>
-              <TableHeader><TableRow>
-                  <TableHead>ID</TableHead>
-                  <TableHead>ID Persona</TableHead>
-                  <TableHead>Fecha Contratación</TableHead>
-                  <TableHead>Turno</TableHead>
-                  <TableHead className="text-right">Acciones</TableHead>
-              </TableRow></TableHeader>
+              <TableHeader><TableRow><TableHead>ID</TableHead><TableHead>ID Persona</TableHead><TableHead>Fecha Contratación</TableHead><TableHead>Turno</TableHead><TableHead className="text-right">Acciones</TableHead></TableRow></TableHeader>
               <TableBody>
                 {items.map((item) => (
-                  <TableRow key={item.idBibliotecario}>
-                    <TableCell>{item.idBibliotecario}</TableCell>
-                    <TableCell>{item.idPersona || 'N/A'}</TableCell>
-                    <TableCell>{formatDate(item.fechaContratacion)}</TableCell>
-                    <TableCell>{item.turno}</TableCell>
-                    <TableCell className="text-right space-x-2">
+                  <TableRow key={item.idBibliotecario}><TableCell>{item.idBibliotecario}</TableCell><TableCell>{item.idPersona || 'N/A'}</TableCell><TableCell>{formatDate(item.fechaContratacion)}</TableCell><TableCell>{item.turno}</TableCell><TableCell className="text-right space-x-2">
                       <Button variant="outline" size="icon" onClick={() => onEdit(item)} aria-label="Editar">
                         <Edit className="h-4 w-4" />
                       </Button>
                       <Button variant="destructive" size="icon" onClick={() => onDelete(item.idBibliotecario)} aria-label="Eliminar">
                         <Trash2 className="h-4 w-4" />
                       </Button>
-                    </TableCell>
-                  </TableRow>
+                    </TableCell></TableRow>
                 ))}
               </TableBody>
             </Table>

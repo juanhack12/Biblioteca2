@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useEffect, useState, useCallback } from 'react';
@@ -97,13 +98,10 @@ function TarifaList({ items, onEdit, onDelete }: TarifaListProps) {
               <TableHeader><TableRow><TableHead>ID Tarifa</TableHead><TableHead>ID Préstamo</TableHead><TableHead>Días Retraso</TableHead><TableHead>Monto Tarifa</TableHead><TableHead className="text-right">Acciones</TableHead></TableRow></TableHeader>
               <TableBody>
                 {items.map((item) => (
-                  <TableRow key={item.idTarifa}>
-                    <TableCell>{item.idTarifa}</TableCell><TableCell>{item.idPrestamo}</TableCell><TableCell>{item.diasRetraso}</TableCell><TableCell>{item.montoTarifa.toFixed(2)}</TableCell>
-                    <TableCell className="text-right space-x-2">
+                  <TableRow key={item.idTarifa}><TableCell>{item.idTarifa}</TableCell><TableCell>{item.idPrestamo}</TableCell><TableCell>{item.diasRetraso}</TableCell><TableCell>{item.montoTarifa.toFixed(2)}</TableCell><TableCell className="text-right space-x-2">
                       <Button variant="outline" size="icon" onClick={() => onEdit(item)} aria-label="Editar"><Edit className="h-4 w-4" /></Button>
                       <Button variant="destructive" size="icon" onClick={() => onDelete(item.idTarifa)} aria-label="Eliminar"><Trash2 className="h-4 w-4" /></Button>
-                    </TableCell>
-                  </TableRow>
+                    </TableCell></TableRow>
                 ))}
               </TableBody>
             </Table>

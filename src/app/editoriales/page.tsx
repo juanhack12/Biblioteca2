@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useEffect, useState, useCallback } from 'react';
@@ -89,13 +90,10 @@ function EditorialList({ items, onEdit, onDelete }: EditorialListProps) {
               <TableHeader><TableRow><TableHead>ID</TableHead><TableHead>Nombre</TableHead><TableHead>País</TableHead><TableHead>Ciudad</TableHead><TableHead>Sitio Web</TableHead><TableHead className="text-right">Acciones</TableHead></TableRow></TableHeader>
               <TableBody>
                 {items.map((item) => (
-                  <TableRow key={item.idEditorial}>
-                    <TableCell>{item.idEditorial}</TableCell><TableCell>{item.nombre}</TableCell><TableCell>{item.pais}</TableCell><TableCell>{item.ciudad}</TableCell><TableCell><a href={item.sitioWeb} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{item.sitioWeb}</a></TableCell>
-                    <TableCell className="text-right space-x-2">
+                  <TableRow key={item.idEditorial}><TableCell>{item.idEditorial}</TableCell><TableCell>{item.nombre}</TableCell><TableCell>{item.pais}</TableCell><TableCell>{item.ciudad}</TableCell><TableCell><a href={item.sitioWeb} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{item.sitioWeb}</a></TableCell><TableCell className="text-right space-x-2">
                       <Button variant="outline" size="icon" onClick={() => onEdit(item)} aria-label="Editar"><Edit className="h-4 w-4" /></Button>
                       <Button variant="destructive" size="icon" onClick={() => onDelete(item.idEditorial)} aria-label="Eliminar"><Trash2 className="h-4 w-4" /></Button>
-                    </TableCell>
-                  </TableRow>
+                    </TableCell></TableRow>
                 ))}
               </TableBody>
             </Table>
