@@ -158,24 +158,20 @@ function BibliotecarioList({ items, onEdit, onDelete }: BibliotecarioListProps) 
   };
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Lista de Bibliotecarios</CardTitle>
-      </CardHeader>
+      <CardHeader><CardTitle>Lista de Bibliotecarios</CardTitle></CardHeader>
       <CardContent>
         {items.length === 0 ? (
           <p className="text-muted-foreground">No hay bibliotecarios registrados.</p>
         ) : (
           <div className="overflow-x-auto">
             <Table>
-              <TableHeader>
-                <TableRow>
+              <TableHeader><TableRow>
                   <TableHead>ID</TableHead>
                   <TableHead>ID Persona</TableHead>
                   <TableHead>Fecha Contratación</TableHead>
                   <TableHead>Turno</TableHead>
                   <TableHead className="text-right">Acciones</TableHead>
-                </TableRow>
-              </TableHeader>
+              </TableRow></TableHeader>
               <TableBody>
                 {items.map((item) => (
                   <TableRow key={item.idBibliotecario}>

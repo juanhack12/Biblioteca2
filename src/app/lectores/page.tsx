@@ -129,8 +129,8 @@ function LectorForm({ currentData, onSubmit, onCancel, isSubmitting }: LectorFor
             />
           </CardContent>
           <CardFooter className="flex justify-end space-x-4">
-            <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}> Cancelar </Button>
-            <Button type="submit" disabled={isSubmitting}> {isSubmitting ? (currentData ? 'Actualizando...' : 'Creando...') : (currentData ? 'Actualizar' : 'Crear')} </Button>
+            <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>Cancelar</Button>
+            <Button type="submit" disabled={isSubmitting}>{isSubmitting ? (currentData ? 'Actualizando...' : 'Creando...') : (currentData ? 'Actualizar' : 'Crear')}</Button>
           </CardFooter>
         </form>
       </Form>
@@ -153,21 +153,21 @@ function LectorList({ items, onEdit, onDelete }: LectorListProps) {
   };
   return (
     <Card>
-      <CardHeader> <CardTitle>Lista de Lectores</CardTitle> </CardHeader>
+      <CardHeader><CardTitle>Lista de Lectores</CardTitle></CardHeader>
       <CardContent>
         {items.length === 0 ? (
           <p className="text-muted-foreground">No hay lectores registrados.</p>
         ) : (
           <div className="overflow-x-auto">
             <Table>
-              <TableHeader> <TableRow> <TableHead>ID Lector</TableHead> <TableHead>ID Persona</TableHead> <TableHead>Fecha Registro</TableHead> <TableHead>Ocupación</TableHead> <TableHead className="text-right">Acciones</TableHead> </TableRow> </TableHeader>
+              <TableHeader><TableRow><TableHead>ID Lector</TableHead><TableHead>ID Persona</TableHead><TableHead>Fecha Registro</TableHead><TableHead>Ocupación</TableHead><TableHead className="text-right">Acciones</TableHead></TableRow></TableHeader>
               <TableBody>
                 {items.map((item) => (
                   <TableRow key={item.idLector}>
-                    <TableCell>{item.idLector}</TableCell> <TableCell>{item.idPersona || 'N/A'}</TableCell> <TableCell>{formatDate(item.fechaRegistro)}</TableCell> <TableCell>{item.ocupacion}</TableCell>
+                    <TableCell>{item.idLector}</TableCell><TableCell>{item.idPersona || 'N/A'}</TableCell><TableCell>{formatDate(item.fechaRegistro)}</TableCell><TableCell>{item.ocupacion}</TableCell>
                     <TableCell className="text-right space-x-2">
-                      <Button variant="outline" size="icon" onClick={() => onEdit(item)} aria-label="Editar"> <Edit className="h-4 w-4" /> </Button>
-                      <Button variant="destructive" size="icon" onClick={() => onDelete(item.idLector)} aria-label="Eliminar"> <Trash2 className="h-4 w-4" /> </Button>
+                      <Button variant="outline" size="icon" onClick={() => onEdit(item)} aria-label="Editar"><Edit className="h-4 w-4" /></Button>
+                      <Button variant="destructive" size="icon" onClick={() => onDelete(item.idLector)} aria-label="Eliminar"><Trash2 className="h-4 w-4" /></Button>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -261,17 +261,16 @@ export default function LectoresPage() {
     <div className="space-y-8">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold text-primary flex items-center"><Users className="mr-3 h-8 w-8" />Gestión de Lectores</h1>
-        {!showForm && ( <Button onClick={handleAddNew} className="shadow-md"> <PlusCircle className="mr-2 h-5 w-5" /> Agregar Nuevo </Button> )}
+        {!showForm && ( <Button onClick={handleAddNew} className="shadow-md"><PlusCircle className="mr-2 h-5 w-5" />Agregar Nuevo</Button> )}
       </div>
       {showForm ? ( <LectorForm currentData={currentItem} onSubmit={handleSubmit} onCancel={handleCancelForm} isSubmitting={isSubmitting} /> ) 
       : ( <LectorList items={data} onEdit={handleEdit} onDelete={confirmDelete} /> )}
       <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
         <AlertDialogContent>
-          <AlertDialogHeader> <AlertDialogTitle>¿Confirmar eliminación?</AlertDialogTitle> <AlertDialogDescription> Esta acción no se puede deshacer. ¿Seguro que quieres eliminar este lector? </AlertDialogDescription> </AlertDialogHeader>
-          <AlertDialogFooter> <AlertDialogCancel onClick={() => setShowDeleteConfirm(false)} disabled={isSubmitting}>Cancelar</AlertDialogCancel> <AlertDialogAction onClick={handleDelete} disabled={isSubmitting} className="bg-destructive hover:bg-destructive/90"> {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null} Eliminar </AlertDialogAction> </AlertDialogFooter>
+          <AlertDialogHeader><AlertDialogTitle>¿Confirmar eliminación?</AlertDialogTitle><AlertDialogDescription>Esta acción no se puede deshacer. ¿Seguro que quieres eliminar este lector?</AlertDialogDescription></AlertDialogHeader>
+          <AlertDialogFooter><AlertDialogCancel onClick={() => setShowDeleteConfirm(false)} disabled={isSubmitting}>Cancelar</AlertDialogCancel><AlertDialogAction onClick={handleDelete} disabled={isSubmitting} className="bg-destructive hover:bg-destructive/90">{isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}Eliminar</AlertDialogAction></AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </div>
   );
 }
-

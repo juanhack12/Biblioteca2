@@ -71,9 +71,9 @@ function PrestamoForm({ currentData, onSubmit, onCancel, isSubmitting }: Prestam
       <Form {...form}>
         <form onSubmit={form.handleSubmit(handleSubmit)}>
           <CardContent className="space-y-6">
-            <FormField control={form.control} name="idLector" render={({ field }) => ( <FormItem> <FormLabel>ID Lector</FormLabel> <FormControl><Input type="number" placeholder="Ej: 1" {...field} onChange={e => field.onChange(Number(e.target.value))} /></FormControl> <FormMessage /> </FormItem> )} />
-            <FormField control={form.control} name="idBibliotecario" render={({ field }) => ( <FormItem> <FormLabel>ID Bibliotecario</FormLabel> <FormControl><Input type="number" placeholder="Ej: 1" {...field} onChange={e => field.onChange(Number(e.target.value))} /></FormControl> <FormMessage /> </FormItem> )} />
-            <FormField control={form.control} name="idEjemplar" render={({ field }) => ( <FormItem> <FormLabel>ID Ejemplar</FormLabel> <FormControl><Input type="number" placeholder="Ej: 1" {...field} onChange={e => field.onChange(Number(e.target.value))} /></FormControl> <FormMessage /> </FormItem> )} />
+            <FormField control={form.control} name="idLector" render={({ field }) => ( <FormItem><FormLabel>ID Lector</FormLabel><FormControl><Input type="number" placeholder="Ej: 1" {...field} onChange={e => field.onChange(Number(e.target.value))} /></FormControl><FormMessage /></FormItem> )} />
+            <FormField control={form.control} name="idBibliotecario" render={({ field }) => ( <FormItem><FormLabel>ID Bibliotecario</FormLabel><FormControl><Input type="number" placeholder="Ej: 1" {...field} onChange={e => field.onChange(Number(e.target.value))} /></FormControl><FormMessage /></FormItem> )} />
+            <FormField control={form.control} name="idEjemplar" render={({ field }) => ( <FormItem><FormLabel>ID Ejemplar</FormLabel><FormControl><Input type="number" placeholder="Ej: 1" {...field} onChange={e => field.onChange(Number(e.target.value))} /></FormControl><FormMessage /></FormItem> )} />
             <FormField
               control={form.control}
               name="fechaPrestamo"
@@ -138,8 +138,8 @@ function PrestamoForm({ currentData, onSubmit, onCancel, isSubmitting }: Prestam
             />
           </CardContent>
           <CardFooter className="flex justify-end space-x-4">
-            <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}> Cancelar </Button>
-            <Button type="submit" disabled={isSubmitting}> {isSubmitting ? (currentData ? 'Actualizando...' : 'Creando...') : (currentData ? 'Actualizar' : 'Crear')} </Button>
+            <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>Cancelar</Button>
+            <Button type="submit" disabled={isSubmitting}>{isSubmitting ? (currentData ? 'Actualizando...' : 'Creando...') : (currentData ? 'Actualizar' : 'Crear')}</Button>
           </CardFooter>
         </form>
       </Form>
@@ -162,21 +162,21 @@ function PrestamoList({ items, onEdit, onDelete }: PrestamoListProps) {
   };
   return (
     <Card>
-      <CardHeader> <CardTitle>Lista de Préstamos</CardTitle> </CardHeader>
+      <CardHeader><CardTitle>Lista de Préstamos</CardTitle></CardHeader>
       <CardContent>
         {items.length === 0 ? (
           <p className="text-muted-foreground">No hay préstamos registrados.</p>
         ) : (
           <div className="overflow-x-auto">
             <Table>
-              <TableHeader> <TableRow> <TableHead>ID</TableHead> <TableHead>ID Lector</TableHead> <TableHead>ID Bibliotecario</TableHead> <TableHead>ID Ejemplar</TableHead> <TableHead>F. Préstamo</TableHead> <TableHead>F. Devolución</TableHead> <TableHead className="text-right">Acciones</TableHead> </TableRow> </TableHeader>
+              <TableHeader><TableRow><TableHead>ID</TableHead><TableHead>ID Lector</TableHead><TableHead>ID Bibliotecario</TableHead><TableHead>ID Ejemplar</TableHead><TableHead>F. Préstamo</TableHead><TableHead>F. Devolución</TableHead><TableHead className="text-right">Acciones</TableHead></TableRow></TableHeader>
               <TableBody>
                 {items.map((item) => (
                   <TableRow key={item.idPrestamo}>
-                    <TableCell>{item.idPrestamo}</TableCell> <TableCell>{item.idLector}</TableCell> <TableCell>{item.idBibliotecario}</TableCell> <TableCell>{item.idEjemplar}</TableCell> <TableCell>{formatDate(item.fechaPrestamo)}</TableCell> <TableCell>{formatDate(item.fechaDevolucion)}</TableCell>
+                    <TableCell>{item.idPrestamo}</TableCell><TableCell>{item.idLector}</TableCell><TableCell>{item.idBibliotecario}</TableCell><TableCell>{item.idEjemplar}</TableCell><TableCell>{formatDate(item.fechaPrestamo)}</TableCell><TableCell>{formatDate(item.fechaDevolucion)}</TableCell>
                     <TableCell className="text-right space-x-2">
-                      <Button variant="outline" size="icon" onClick={() => onEdit(item)} aria-label="Editar"> <Edit className="h-4 w-4" /> </Button>
-                      <Button variant="destructive" size="icon" onClick={() => onDelete(item.idPrestamo)} aria-label="Eliminar"> <Trash2 className="h-4 w-4" /> </Button>
+                      <Button variant="outline" size="icon" onClick={() => onEdit(item)} aria-label="Editar"><Edit className="h-4 w-4" /></Button>
+                      <Button variant="destructive" size="icon" onClick={() => onDelete(item.idPrestamo)} aria-label="Eliminar"><Trash2 className="h-4 w-4" /></Button>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -262,17 +262,16 @@ export default function PrestamosPage() {
     <div className="space-y-8">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold text-primary flex items-center"><ArrowRightLeft className="mr-3 h-8 w-8" />Gestión de Préstamos</h1>
-        {!showForm && ( <Button onClick={handleAddNew} className="shadow-md"> <PlusCircle className="mr-2 h-5 w-5" /> Agregar Nuevo </Button> )}
+        {!showForm && ( <Button onClick={handleAddNew} className="shadow-md"><PlusCircle className="mr-2 h-5 w-5" />Agregar Nuevo</Button> )}
       </div>
       {showForm ? ( <PrestamoForm currentData={currentItem} onSubmit={handleSubmit} onCancel={handleCancelForm} isSubmitting={isSubmitting} /> ) 
       : ( <PrestamoList items={data} onEdit={handleEdit} onDelete={confirmDelete} /> )}
       <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
         <AlertDialogContent>
-          <AlertDialogHeader> <AlertDialogTitle>¿Confirmar eliminación?</AlertDialogTitle> <AlertDialogDescription> Esta acción no se puede deshacer. ¿Seguro que quieres eliminar este préstamo? </AlertDialogDescription> </AlertDialogHeader>
-          <AlertDialogFooter> <AlertDialogCancel onClick={() => setShowDeleteConfirm(false)} disabled={isSubmitting}>Cancelar</AlertDialogCancel> <AlertDialogAction onClick={handleDelete} disabled={isSubmitting} className="bg-destructive hover:bg-destructive/90"> {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null} Eliminar </AlertDialogAction> </AlertDialogFooter>
+          <AlertDialogHeader><AlertDialogTitle>¿Confirmar eliminación?</AlertDialogTitle><AlertDialogDescription>Esta acción no se puede deshacer. ¿Seguro que quieres eliminar este préstamo?</AlertDialogDescription></AlertDialogHeader>
+          <AlertDialogFooter><AlertDialogCancel onClick={() => setShowDeleteConfirm(false)} disabled={isSubmitting}>Cancelar</AlertDialogCancel><AlertDialogAction onClick={handleDelete} disabled={isSubmitting} className="bg-destructive hover:bg-destructive/90">{isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}Eliminar</AlertDialogAction></AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </div>
   );
 }
-

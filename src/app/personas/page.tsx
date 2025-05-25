@@ -62,9 +62,9 @@ function PersonaForm({ currentData, onSubmit, onCancel, isSubmitting }: PersonaF
       <Form {...form}>
         <form onSubmit={form.handleSubmit(handleSubmit)}>
           <CardContent className="space-y-6">
-            <FormField control={form.control} name="nombre" render={({ field }) => ( <FormItem> <FormLabel>Nombre</FormLabel> <FormControl><Input placeholder="Ej: Ana" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
-            <FormField control={form.control} name="apellido" render={({ field }) => ( <FormItem> <FormLabel>Apellido</FormLabel> <FormControl><Input placeholder="Ej: Pérez" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
-            <FormField control={form.control} name="documentoIdentidad" render={({ field }) => ( <FormItem> <FormLabel>Documento Identidad</FormLabel> <FormControl><Input placeholder="Ej: 12345678X" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
+            <FormField control={form.control} name="nombre" render={({ field }) => ( <FormItem><FormLabel>Nombre</FormLabel><FormControl><Input placeholder="Ej: Ana" {...field} /></FormControl><FormMessage /></FormItem> )} />
+            <FormField control={form.control} name="apellido" render={({ field }) => ( <FormItem><FormLabel>Apellido</FormLabel><FormControl><Input placeholder="Ej: Pérez" {...field} /></FormControl><FormMessage /></FormItem> )} />
+            <FormField control={form.control} name="documentoIdentidad" render={({ field }) => ( <FormItem><FormLabel>Documento Identidad</FormLabel><FormControl><Input placeholder="Ej: 12345678X" {...field} /></FormControl><FormMessage /></FormItem> )} />
             <FormField
               control={form.control}
               name="fechaNacimiento"
@@ -97,13 +97,13 @@ function PersonaForm({ currentData, onSubmit, onCancel, isSubmitting }: PersonaF
                 </FormItem>
               )}
             />
-            <FormField control={form.control} name="correo" render={({ field }) => ( <FormItem> <FormLabel>Correo</FormLabel> <FormControl><Input type="email" placeholder="Ej: ana.perez@example.com" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
-            <FormField control={form.control} name="telefono" render={({ field }) => ( <FormItem> <FormLabel>Teléfono</FormLabel> <FormControl><Input type="tel" placeholder="Ej: 600123456" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
-            <FormField control={form.control} name="direccion" render={({ field }) => ( <FormItem> <FormLabel>Dirección</FormLabel> <FormControl><Input placeholder="Ej: Calle Falsa 123" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
+            <FormField control={form.control} name="correo" render={({ field }) => ( <FormItem><FormLabel>Correo</FormLabel><FormControl><Input type="email" placeholder="Ej: ana.perez@example.com" {...field} /></FormControl><FormMessage /></FormItem> )} />
+            <FormField control={form.control} name="telefono" render={({ field }) => ( <FormItem><FormLabel>Teléfono</FormLabel><FormControl><Input type="tel" placeholder="Ej: 600123456" {...field} /></FormControl><FormMessage /></FormItem> )} />
+            <FormField control={form.control} name="direccion" render={({ field }) => ( <FormItem><FormLabel>Dirección</FormLabel><FormControl><Input placeholder="Ej: Calle Falsa 123" {...field} /></FormControl><FormMessage /></FormItem> )} />
           </CardContent>
           <CardFooter className="flex justify-end space-x-4">
-            <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}> Cancelar </Button>
-            <Button type="submit" disabled={isSubmitting}> {isSubmitting ? (currentData ? 'Actualizando...' : 'Creando...') : (currentData ? 'Actualizar' : 'Crear')} </Button>
+            <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>Cancelar</Button>
+            <Button type="submit" disabled={isSubmitting}>{isSubmitting ? (currentData ? 'Actualizando...' : 'Creando...') : (currentData ? 'Actualizar' : 'Crear')}</Button>
           </CardFooter>
         </form>
       </Form>
@@ -126,21 +126,21 @@ function PersonaList({ items, onEdit, onDelete }: PersonaListProps) {
   };
   return (
     <Card>
-      <CardHeader> <CardTitle>Lista de Personas</CardTitle> </CardHeader>
+      <CardHeader><CardTitle>Lista de Personas</CardTitle></CardHeader>
       <CardContent>
         {items.length === 0 ? (
           <p className="text-muted-foreground">No hay personas registradas.</p>
         ) : (
           <div className="overflow-x-auto">
             <Table>
-              <TableHeader> <TableRow> <TableHead>ID</TableHead> <TableHead>Nombre</TableHead> <TableHead>Apellido</TableHead> <TableHead>Documento</TableHead> <TableHead>F. Nacimiento</TableHead> <TableHead>Correo</TableHead> <TableHead>Teléfono</TableHead> <TableHead>Dirección</TableHead> <TableHead className="text-right">Acciones</TableHead> </TableRow> </TableHeader>
+              <TableHeader><TableRow><TableHead>ID</TableHead><TableHead>Nombre</TableHead><TableHead>Apellido</TableHead><TableHead>Documento</TableHead><TableHead>F. Nacimiento</TableHead><TableHead>Correo</TableHead><TableHead>Teléfono</TableHead><TableHead>Dirección</TableHead><TableHead className="text-right">Acciones</TableHead></TableRow></TableHeader>
               <TableBody>
                 {items.map((item) => (
                   <TableRow key={item.idPersona}>
-                    <TableCell>{item.idPersona}</TableCell> <TableCell>{item.nombre}</TableCell> <TableCell>{item.apellido}</TableCell> <TableCell>{item.documentoIdentidad}</TableCell> <TableCell>{formatDate(item.fechaNacimiento)}</TableCell> <TableCell>{item.correo}</TableCell> <TableCell>{item.telefono}</TableCell> <TableCell>{item.direccion}</TableCell>
+                    <TableCell>{item.idPersona}</TableCell><TableCell>{item.nombre}</TableCell><TableCell>{item.apellido}</TableCell><TableCell>{item.documentoIdentidad}</TableCell><TableCell>{formatDate(item.fechaNacimiento)}</TableCell><TableCell>{item.correo}</TableCell><TableCell>{item.telefono}</TableCell><TableCell>{item.direccion}</TableCell>
                     <TableCell className="text-right space-x-2">
-                      <Button variant="outline" size="icon" onClick={() => onEdit(item)} aria-label="Editar"> <Edit className="h-4 w-4" /> </Button>
-                      <Button variant="destructive" size="icon" onClick={() => onDelete(item.idPersona)} aria-label="Eliminar"> <Trash2 className="h-4 w-4" /> </Button>
+                      <Button variant="outline" size="icon" onClick={() => onEdit(item)} aria-label="Editar"><Edit className="h-4 w-4" /></Button>
+                      <Button variant="destructive" size="icon" onClick={() => onDelete(item.idPersona)} aria-label="Eliminar"><Trash2 className="h-4 w-4" /></Button>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -226,17 +226,16 @@ export default function PersonasPage() {
     <div className="space-y-8">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold text-primary flex items-center"><Users className="mr-3 h-8 w-8" />Gestión de Personas</h1>
-        {!showForm && ( <Button onClick={handleAddNew} className="shadow-md"> <PlusCircle className="mr-2 h-5 w-5" /> Agregar Nueva </Button> )}
+        {!showForm && ( <Button onClick={handleAddNew} className="shadow-md"><PlusCircle className="mr-2 h-5 w-5" />Agregar Nueva</Button> )}
       </div>
       {showForm ? ( <PersonaForm currentData={currentItem} onSubmit={handleSubmit} onCancel={handleCancelForm} isSubmitting={isSubmitting} /> ) 
       : ( <PersonaList items={data} onEdit={handleEdit} onDelete={confirmDelete} /> )}
       <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
         <AlertDialogContent>
-          <AlertDialogHeader> <AlertDialogTitle>¿Confirmar eliminación?</AlertDialogTitle> <AlertDialogDescription> Esta acción no se puede deshacer. ¿Seguro que quieres eliminar esta persona? </AlertDialogDescription> </AlertDialogHeader>
-          <AlertDialogFooter> <AlertDialogCancel onClick={() => setShowDeleteConfirm(false)} disabled={isSubmitting}>Cancelar</AlertDialogCancel> <AlertDialogAction onClick={handleDelete} disabled={isSubmitting} className="bg-destructive hover:bg-destructive/90"> {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null} Eliminar </AlertDialogAction> </AlertDialogFooter>
+          <AlertDialogHeader><AlertDialogTitle>¿Confirmar eliminación?</AlertDialogTitle><AlertDialogDescription>Esta acción no se puede deshacer. ¿Seguro que quieres eliminar esta persona?</AlertDialogDescription></AlertDialogHeader>
+          <AlertDialogFooter><AlertDialogCancel onClick={() => setShowDeleteConfirm(false)} disabled={isSubmitting}>Cancelar</AlertDialogCancel><AlertDialogAction onClick={handleDelete} disabled={isSubmitting} className="bg-destructive hover:bg-destructive/90">{isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}Eliminar</AlertDialogAction></AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </div>
   );
 }
-
