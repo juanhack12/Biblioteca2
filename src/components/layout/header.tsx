@@ -1,3 +1,4 @@
+
 "use client";
 import Link from 'next/link';
 import { BookMarked, Users, Library, Book, ArrowRightLeft, CircleDollarSign, Wand2, Menu, Combine } from 'lucide-react';
@@ -18,7 +19,7 @@ const navLinks = [
   { href: "/personas", label: "Personas", icon: Users },
   { href: "/prestamos", label: "Préstamos", icon: ArrowRightLeft },
   { href: "/tarifas", label: "Tarifas", icon: CircleDollarSign },
-  { href: "/ai-book-entry", label: "AI Book Entry", icon: Wand2 },
+  // { href: "/ai-book-entry", label: "AI Book Entry", icon: Wand2 }, // Removed AI Book Entry
 ];
 
 export function Header() {
@@ -52,7 +53,7 @@ export function Header() {
         
         {/* Desktop Navigation */}
         <nav className="hidden items-center space-x-1 md:flex">
-          {navLinks.slice(0, 5).map(link => ( // Show first 5 links directly
+          {navLinks.slice(0, 5).map(link => ( 
              <Button key={link.href} variant="ghost" size="sm" asChild className={cn(pathname === link.href ? "bg-accent text-accent-foreground" : "")}>
                <Link href={link.href} className="flex items-center gap-1.5">
                  <link.icon className="h-4 w-4" /> {link.label}

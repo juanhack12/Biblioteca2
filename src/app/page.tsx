@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { BookOpen, Users, Library, ArrowRight, Wand2 } from "lucide-react";
@@ -32,7 +33,7 @@ export default function HomePage() {
         </Card>
       </div>
       
-      <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3 max-w-6xl w-full">
+      <div className="grid grid-cols-1 gap-8 md:grid-cols-2 max-w-4xl w-full">
         <FeatureCard
           icon={<BookOpen className="h-10 w-10 text-accent" />}
           title="Gestión de Libros"
@@ -46,13 +47,6 @@ export default function HomePage() {
           description="Maneje autores, lectores y bibliotecarios con perfiles detallados."
           link="/personas"
           linkLabel="Ver Personas"
-        />
-        <FeatureCard
-          icon={<Wand2 className="h-10 w-10 text-accent" />}
-          title="Entrada Asistida por IA"
-          description="Acelere el ingreso de libros con sugerencias inteligentes de nuestra IA."
-          link="/ai-book-entry"
-          linkLabel="Probar IA"
         />
       </div>
 
