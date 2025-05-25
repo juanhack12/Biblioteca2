@@ -6,19 +6,24 @@ import { API_BASE_URL, formatDateForApi } from '@/lib/api-config';
 const API_URL = `${API_BASE_URL}/Bibliotecarios`;
 
 export const getAllBibliotecarios = async (): Promise<BibliotecariosModel[]> => {
-  const response = await axios.get<BibliotecariosModel[]>(API_URL);
+  const response = await axios.get<any[]>(API_URL);
   return response.data.map(bibliotecario => ({
     ...bibliotecario,
+    idBibliotecario: Number(bibliotecario.idBibliotecario),
+    idPersona: bibliotecario.idPersona ? Number(bibliotecario.idPersona) : undefined,
     fechaContratacion: bibliotecario.fechaContratacion ? formatDateForApi(bibliotecario.fechaContratacion) : undefined
   }));
 };
 
 export const getBibliotecarioById = async (id: number): Promise<BibliotecariosModel> => {
-  const response = await axios.get<BibliotecariosModel>(`${API_URL}/${id}`);
-  if (response.data.fechaContratacion) {
-    response.data.fechaContratacion = formatDateForApi(response.data.fechaContratacion);
-  }
-  return response.data;
+  const response = await axios.get<any>(`${API_URL}/${id}`);
+  const bibliotecario = response.data;
+  return {
+    ...bibliotecario,
+    idBibliotecario: Number(bibliotecario.idBibliotecario),
+    idPersona: bibliotecario.idPersona ? Number(bibliotecario.idPersona) : undefined,
+    fechaContratacion: bibliotecario.fechaContratacion ? formatDateForApi(bibliotecario.fechaContratacion) : undefined,
+  };
 };
 
 export const createBibliotecario = async (
@@ -27,13 +32,16 @@ export const createBibliotecario = async (
   turno: string
 ): Promise<BibliotecariosModel> => {
   const fechaContratacionParam = fechaContratacion || 'null';
-  const response = await axios.post<BibliotecariosModel>(
+  const response = await axios.post<any>(
     `${API_URL}/${idPersona}/${encodeURIComponent(fechaContratacionParam)}/${encodeURIComponent(turno)}`
   );
-  if (response.data.fechaContratacion) {
-    response.data.fechaContratacion = formatDateForApi(response.data.fechaContratacion);
-  }
-  return response.data;
+  const bibliotecario = response.data;
+  return {
+    ...bibliotecario,
+    idBibliotecario: Number(bibliotecario.idBibliotecario),
+    idPersona: bibliotecario.idPersona ? Number(bibliotecario.idPersona) : undefined,
+    fechaContratacion: bibliotecario.fechaContratacion ? formatDateForApi(bibliotecario.fechaContratacion) : undefined,
+  };
 };
 
 export const updateBibliotecario = async (
@@ -52,11 +60,14 @@ export const updateBibliotecario = async (
   if (params.toString()) {
     url += `?${params.toString()}`;
   }
-  const response = await axios.put<BibliotecariosModel>(url);
-  if (response.data.fechaContratacion) {
-    response.data.fechaContratacion = formatDateForApi(response.data.fechaContratacion);
-  }
-  return response.data;
+  const response = await axios.put<any>(url);
+  const bibliotecario = response.data;
+  return {
+    ...bibliotecario,
+    idBibliotecario: Number(bibliotecario.idBibliotecario),
+    idPersona: bibliotecario.idPersona ? Number(bibliotecario.idPersona) : undefined,
+    fechaContratacion: bibliotecario.fechaContratacion ? formatDateForApi(bibliotecario.fechaContratacion) : undefined,
+  };
 };
 
 export const deleteBibliotecario = async (id: number): Promise<void> => {

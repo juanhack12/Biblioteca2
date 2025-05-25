@@ -6,36 +6,40 @@ import { API_BASE_URL, formatDateForApi } from '@/lib/api-config';
 const API_URL = `${API_BASE_URL}/Autores`;
 
 export const getAllAutores = async (): Promise<AutoresModel[]> => {
-  const response = await axios.get<AutoresModel[]>(API_URL);
+  const response = await axios.get<any[]>(API_URL); // Get as any[] first for parsing
   return response.data.map(autor => ({
     ...autor,
+    idAutor: Number(autor.idAutor), // Ensure number
     fechaNacimiento: autor.fechaNacimiento ? formatDateForApi(autor.fechaNacimiento) : undefined
   }));
 };
 
 export const getAutorById = async (id: number): Promise<AutoresModel> => {
-  const response = await axios.get<AutoresModel>(`${API_URL}/${id}`);
-  if (response.data.fechaNacimiento) {
-    response.data.fechaNacimiento = formatDateForApi(response.data.fechaNacimiento);
-  }
-  return response.data;
+  const response = await axios.get<any>(`${API_URL}/${id}`);
+  const autor = response.data;
+  return {
+    ...autor,
+    idAutor: Number(autor.idAutor),
+    fechaNacimiento: autor.fechaNacimiento ? formatDateForApi(autor.fechaNacimiento) : undefined
+  };
 };
 
 export const createAutor = async (
   nombre: string,
   apellido: string,
-  fechaNacimiento: DateOnlyString | undefined, // Allow undefined for optional dates
+  fechaNacimiento: DateOnlyString | undefined,
   nacionalidad: string
 ): Promise<AutoresModel> => {
-  // Filter out undefined values before constructing URL, or handle them as per backend expectation
-  const fechaNacimientoParam = fechaNacimiento || 'null'; // Or however backend expects optional date
-  const response = await axios.post<AutoresModel>(
+  const fechaNacimientoParam = fechaNacimiento || 'null';
+  const response = await axios.post<any>(
     `${API_URL}/${encodeURIComponent(nombre)}/${encodeURIComponent(apellido)}/${encodeURIComponent(fechaNacimientoParam)}/${encodeURIComponent(nacionalidad)}`
   );
-  if (response.data.fechaNacimiento) {
-    response.data.fechaNacimiento = formatDateForApi(response.data.fechaNacimiento);
-  }
-  return response.data;
+  const autor = response.data;
+  return {
+    ...autor,
+    idAutor: Number(autor.idAutor),
+    fechaNacimiento: autor.fechaNacimiento ? formatDateForApi(autor.fechaNacimiento) : undefined
+  };
 };
 
 export const updateAutor = async (
@@ -57,11 +61,13 @@ export const updateAutor = async (
     url += `?${params.toString()}`;
   }
 
-  const response = await axios.put<AutoresModel>(url);
-  if (response.data.fechaNacimiento) {
-    response.data.fechaNacimiento = formatDateForApi(response.data.fechaNacimiento);
-  }
-  return response.data;
+  const response = await axios.put<any>(url);
+  const autor = response.data;
+  return {
+    ...autor,
+    idAutor: Number(autor.idAutor),
+    fechaNacimiento: autor.fechaNacimiento ? formatDateForApi(autor.fechaNacimiento) : undefined
+  };
 };
 
 export const deleteAutor = async (id: number): Promise<void> => {

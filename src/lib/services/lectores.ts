@@ -6,19 +6,24 @@ import { API_BASE_URL, formatDateForApi } from '@/lib/api-config';
 const API_URL = `${API_BASE_URL}/Lectores`;
 
 export const getAllLectores = async (): Promise<LectoresModel[]> => {
-  const response = await axios.get<LectoresModel[]>(API_URL);
+  const response = await axios.get<any[]>(API_URL);
   return response.data.map(lector => ({
     ...lector,
+    idLector: Number(lector.idLector),
+    idPersona: lector.idPersona ? Number(lector.idPersona) : undefined,
     fechaRegistro: lector.fechaRegistro ? formatDateForApi(lector.fechaRegistro) : undefined
   }));
 };
 
 export const getLectorById = async (id: number): Promise<LectoresModel> => {
-  const response = await axios.get<LectoresModel>(`${API_URL}/${id}`);
-  if (response.data.fechaRegistro) {
-    response.data.fechaRegistro = formatDateForApi(response.data.fechaRegistro);
-  }
-  return response.data;
+  const response = await axios.get<any>(`${API_URL}/${id}`);
+  const lector = response.data;
+  return {
+    ...lector,
+    idLector: Number(lector.idLector),
+    idPersona: lector.idPersona ? Number(lector.idPersona) : undefined,
+    fechaRegistro: lector.fechaRegistro ? formatDateForApi(lector.fechaRegistro) : undefined,
+  };
 };
 
 export const createLector = async (
@@ -27,13 +32,16 @@ export const createLector = async (
   ocupacion: string
 ): Promise<LectoresModel> => {
   const fechaRegistroParam = fechaRegistro || 'null';
-  const response = await axios.post<LectoresModel>(
+  const response = await axios.post<any>(
     `${API_URL}/${idPersona}/${encodeURIComponent(fechaRegistroParam)}/${encodeURIComponent(ocupacion)}`
   );
-  if (response.data.fechaRegistro) {
-    response.data.fechaRegistro = formatDateForApi(response.data.fechaRegistro);
-  }
-  return response.data;
+  const lector = response.data;
+  return {
+    ...lector,
+    idLector: Number(lector.idLector),
+    idPersona: lector.idPersona ? Number(lector.idPersona) : undefined,
+    fechaRegistro: lector.fechaRegistro ? formatDateForApi(lector.fechaRegistro) : undefined,
+  };
 };
 
 export const updateLector = async (
@@ -52,11 +60,14 @@ export const updateLector = async (
   if (params.toString()) {
     url += `?${params.toString()}`;
   }
-  const response = await axios.put<LectoresModel>(url);
-  if (response.data.fechaRegistro) {
-    response.data.fechaRegistro = formatDateForApi(response.data.fechaRegistro);
-  }
-  return response.data;
+  const response = await axios.put<any>(url);
+  const lector = response.data;
+  return {
+    ...lector,
+    idLector: Number(lector.idLector),
+    idPersona: lector.idPersona ? Number(lector.idPersona) : undefined,
+    fechaRegistro: lector.fechaRegistro ? formatDateForApi(lector.fechaRegistro) : undefined,
+  };
 };
 
 export const deleteLector = async (id: number): Promise<void> => {

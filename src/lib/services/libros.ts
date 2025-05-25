@@ -6,13 +6,23 @@ import { API_BASE_URL } from '@/lib/api-config';
 const API_URL = `${API_BASE_URL}/Libros`;
 
 export const getAllLibros = async (): Promise<LibrosModel[]> => {
-  const response = await axios.get<LibrosModel[]>(API_URL);
-  return response.data;
+  const response = await axios.get<any[]>(API_URL);
+  return response.data.map(libro => ({
+    ...libro,
+    idLibro: Number(libro.idLibro),
+    idEditorial: Number(libro.idEditorial),
+    // anioPublicacion is already a string in the model, so no change needed unless API sends it as number
+  }));
 };
 
 export const getLibroById = async (id: number): Promise<LibrosModel> => {
-  const response = await axios.get<LibrosModel>(`${API_URL}/${id}`);
-  return response.data;
+  const response = await axios.get<any>(`${API_URL}/${id}`);
+  const libro = response.data;
+  return {
+    ...libro,
+    idLibro: Number(libro.idLibro),
+    idEditorial: Number(libro.idEditorial),
+  };
 };
 
 export const createLibro = async (
@@ -20,10 +30,15 @@ export const createLibro = async (
   anioPublicacion: string,
   idEditorial: number
 ): Promise<LibrosModel> => {
-  const response = await axios.post<LibrosModel>(
+  const response = await axios.post<any>(
     `${API_URL}/${encodeURIComponent(titulo)}/${encodeURIComponent(anioPublicacion)}/${idEditorial}`
   );
-  return response.data;
+  const libro = response.data;
+  return {
+    ...libro,
+    idLibro: Number(libro.idLibro),
+    idEditorial: Number(libro.idEditorial),
+  };
 };
 
 export const updateLibro = async (
@@ -42,8 +57,13 @@ export const updateLibro = async (
   if (params.toString()) {
     url += `?${params.toString()}`;
   }
-  const response = await axios.put<LibrosModel>(url);
-  return response.data;
+  const response = await axios.put<any>(url);
+  const libro = response.data;
+  return {
+    ...libro,
+    idLibro: Number(libro.idLibro),
+    idEditorial: Number(libro.idEditorial),
+  };
 };
 
 export const deleteLibro = async (id: number): Promise<void> => {

@@ -6,19 +6,22 @@ import { API_BASE_URL, formatDateForApi } from '@/lib/api-config';
 const API_URL = `${API_BASE_URL}/Personas`;
 
 export const getAllPersonas = async (): Promise<PersonasModel[]> => {
-  const response = await axios.get<PersonasModel[]>(API_URL);
+  const response = await axios.get<any[]>(API_URL);
   return response.data.map(persona => ({
     ...persona,
-    fechaNacimiento: formatDateForApi(persona.fechaNacimiento) || '' // Ensure it's always a string or handle as undefined
+    idPersona: Number(persona.idPersona),
+    fechaNacimiento: formatDateForApi(persona.fechaNacimiento) || ''
   }));
 };
 
 export const getPersonaById = async (id: number): Promise<PersonasModel> => {
-  const response = await axios.get<PersonasModel>(`${API_URL}/${id}`);
-  if (response.data.fechaNacimiento) {
-    response.data.fechaNacimiento = formatDateForApi(response.data.fechaNacimiento) || '';
-  }
-  return response.data;
+  const response = await axios.get<any>(`${API_URL}/${id}`);
+  const persona = response.data;
+  return {
+    ...persona,
+    idPersona: Number(persona.idPersona),
+    fechaNacimiento: formatDateForApi(persona.fechaNacimiento) || ''
+  };
 };
 
 export const createPersona = async (
@@ -30,13 +33,15 @@ export const createPersona = async (
   telefono: string,
   direccion: string
 ): Promise<PersonasModel> => {
-  const response = await axios.post<PersonasModel>(
+  const response = await axios.post<any>(
     `${API_URL}/${encodeURIComponent(nombre)}/${encodeURIComponent(apellido)}/${encodeURIComponent(documentoIdentidad)}/${encodeURIComponent(fechaNacimiento)}/${encodeURIComponent(correo)}/${encodeURIComponent(telefono)}/${encodeURIComponent(direccion)}`
   );
-  if (response.data.fechaNacimiento) {
-    response.data.fechaNacimiento = formatDateForApi(response.data.fechaNacimiento) || '';
-  }
-  return response.data;
+  const persona = response.data;
+  return {
+    ...persona,
+    idPersona: Number(persona.idPersona),
+    fechaNacimiento: formatDateForApi(persona.fechaNacimiento) || ''
+  };
 };
 
 export const updatePersona = async (
@@ -63,11 +68,13 @@ export const updatePersona = async (
   if (params.toString()) {
     url += `?${params.toString()}`;
   }
-  const response = await axios.put<PersonasModel>(url);
-  if (response.data.fechaNacimiento) {
-    response.data.fechaNacimiento = formatDateForApi(response.data.fechaNacimiento) || '';
-  }
-  return response.data;
+  const response = await axios.put<any>(url);
+  const persona = response.data;
+  return {
+    ...persona,
+    idPersona: Number(persona.idPersona),
+    fechaNacimiento: formatDateForApi(persona.fechaNacimiento) || ''
+  };
 };
 
 export const deletePersona = async (id: number): Promise<void> => {
