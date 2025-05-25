@@ -42,7 +42,7 @@ function BibliotecarioForm({ currentData, onSubmit, onCancel, isSubmitting }: Bi
   useEffect(() => {
     if (currentData) {
       form.reset({
-        idPersona: currentData.idPersona ?? undefined,
+        idPersona: currentData.idPersona,
         fechaContratacion: currentData.fechaContratacion || undefined,
         turno: currentData.turno,
       });
@@ -59,7 +59,7 @@ function BibliotecarioForm({ currentData, onSubmit, onCancel, isSubmitting }: Bi
     // Ensure numeric fields are numbers or undefined
     const payload = {
       ...data,
-      idPersona: data.idPersona ? Number(data.idPersona) : undefined,
+      idPersona: Number(data.idPersona), // Zod schema now requires number
     };
     await onSubmit(payload, currentData?.idBibliotecario);
   };
@@ -77,7 +77,7 @@ function BibliotecarioForm({ currentData, onSubmit, onCancel, isSubmitting }: Bi
               name="idPersona"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>ID Persona (Opcional)</FormLabel>
+                  <FormLabel>ID Persona</FormLabel>
                   <FormControl>
                     <Input type="number" placeholder="Ej: 1" {...field} onChange={e => field.onChange(e.target.value === '' ? undefined : Number(e.target.value))} value={field.value ?? ''} />
                   </FormControl>
@@ -213,18 +213,13 @@ export default function BibliotecariosPage() {
   const handleSubmit = async (formData: BibliotecariosFormValues, id?: number) => {
     setIsSubmitting(true);
     try {
-      const idPersonaToSubmit = formData.idPersona ? Number(formData.idPersona) : 0; // Backend needs int, 0 if not provided
+      const idPersonaToSubmit = Number(formData.idPersona); // Already validated as number by Zod
       const fechaContratacionToSubmit = formData.fechaContratacion || undefined;
 
       if (id) {
         await updateBibliotecario(id, idPersonaToSubmit, fechaContratacionToSubmit, formData.turno);
         toast({ title: "Éxito", description: "Bibliotecario actualizado." });
       } else {
-        if(idPersonaToSubmit === 0) { // Basic validation example, ideally handled by Zod
-            toast({ title: "Error", description: "ID Persona es requerido para crear.", variant: "destructive" });
-            setIsSubmitting(false);
-            return;
-        }
         await createBibliotecario(idPersonaToSubmit, fechaContratacionToSubmit, formData.turno);
         toast({ title: "Éxito", description: "Bibliotecario creado." });
       }

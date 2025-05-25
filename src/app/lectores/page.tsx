@@ -42,7 +42,7 @@ function LectorForm({ currentData, onSubmit, onCancel, isSubmitting }: LectorFor
   useEffect(() => {
     if (currentData) {
       form.reset({
-        idPersona: currentData.idPersona ?? undefined,
+        idPersona: currentData.idPersona,
         fechaRegistro: currentData.fechaRegistro || undefined,
         ocupacion: currentData.ocupacion,
       });
@@ -58,7 +58,7 @@ function LectorForm({ currentData, onSubmit, onCancel, isSubmitting }: LectorFor
   const handleSubmit = async (data: LectoresFormValues) => {
     const payload = {
       ...data,
-      idPersona: data.idPersona ? Number(data.idPersona) : undefined,
+      idPersona: Number(data.idPersona), // Zod schema now requires number
     };
     await onSubmit(payload, currentData?.idLector);
   };
@@ -76,7 +76,7 @@ function LectorForm({ currentData, onSubmit, onCancel, isSubmitting }: LectorFor
               name="idPersona"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>ID Persona (Opcional)</FormLabel>
+                  <FormLabel>ID Persona</FormLabel>
                   <FormControl>
                     <Input type="number" placeholder="Ej: 1" {...field} onChange={e => field.onChange(e.target.value === '' ? undefined : Number(e.target.value))} value={field.value ?? ''} />
                   </FormControl>
@@ -205,18 +205,13 @@ export default function LectoresPage() {
   const handleSubmit = async (formData: LectoresFormValues, id?: number) => {
     setIsSubmitting(true);
     try {
-      const idPersonaToSubmit = formData.idPersona ? Number(formData.idPersona) : 0;
+      const idPersonaToSubmit = Number(formData.idPersona); // Already validated as number by Zod
       const fechaRegistroToSubmit = formData.fechaRegistro || undefined;
 
       if (id) {
         await updateLector(id, idPersonaToSubmit, fechaRegistroToSubmit, formData.ocupacion);
         toast({ title: "Éxito", description: "Lector actualizado." });
       } else {
-         if(idPersonaToSubmit === 0) { 
-            toast({ title: "Error", description: "ID Persona es requerido para crear.", variant: "destructive" });
-            setIsSubmitting(false);
-            return;
-        }
         await createLector(idPersonaToSubmit, fechaRegistroToSubmit, formData.ocupacion);
         toast({ title: "Éxito", description: "Lector creado." });
       }

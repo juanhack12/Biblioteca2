@@ -36,7 +36,7 @@ function EjemplarForm({ currentData, onSubmit, onCancel, isSubmitting }: Ejempla
   useEffect(() => {
     if (currentData) {
       form.reset({
-        idLibro: currentData.idLibro ?? undefined,
+        idLibro: currentData.idLibro,
         ubicacion: currentData.ubicacion,
       });
     } else {
@@ -50,7 +50,7 @@ function EjemplarForm({ currentData, onSubmit, onCancel, isSubmitting }: Ejempla
   const handleSubmit = async (data: EjemplaresFormValues) => {
     const payload = {
       ...data,
-      idLibro: data.idLibro ? Number(data.idLibro) : undefined,
+      idLibro: Number(data.idLibro), // Zod schema now requires number
     };
     await onSubmit(payload, currentData?.idEjemplar);
   };
@@ -68,7 +68,7 @@ function EjemplarForm({ currentData, onSubmit, onCancel, isSubmitting }: Ejempla
               name="idLibro"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>ID Libro (Opcional)</FormLabel>
+                  <FormLabel>ID Libro</FormLabel>
                   <FormControl>
                     <Input type="number" placeholder="Ej: 101" {...field} onChange={e => field.onChange(e.target.value === '' ? undefined : Number(e.target.value))} value={field.value ?? ''} />
                   </FormControl>
@@ -161,16 +161,11 @@ export default function EjemplaresPage() {
   const handleSubmit = async (formData: EjemplaresFormValues, id?: number) => {
     setIsSubmitting(true);
     try {
-      const idLibroToSubmit = formData.idLibro ? Number(formData.idLibro) : 0; // Assume 0 if not provided for update, or handle validation
+      const idLibroToSubmit = Number(formData.idLibro); // Already validated as number by Zod
       if (id) {
         await updateEjemplar(id, idLibroToSubmit, formData.ubicacion);
         toast({ title: "Éxito", description: "Ejemplar actualizado." });
       } else {
-         if(idLibroToSubmit === 0) { // Basic validation example, ideally handled by Zod
-            toast({ title: "Error", description: "ID Libro es requerido para crear.", variant: "destructive" });
-            setIsSubmitting(false);
-            return;
-        }
         await createEjemplar(idLibroToSubmit, formData.ubicacion);
         toast({ title: "Éxito", description: "Ejemplar creado." });
       }
