@@ -16,7 +16,7 @@ import { Input } from '@/components/ui/input';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { libroSchema } from '@/lib/schemas';
-import { z } from 'zod';
+import { z } from 'zod'; // Added Zod import
 
 // LibroForm Component
 interface LibroFormProps {
@@ -55,8 +55,7 @@ function LibroForm({ currentData, initialValues, onSubmit, onCancel, isSubmittin
     }
   }, [currentData, initialValues, form]);
 
-  const handleSubmit = async (data: LibrosFormValues) => {
-    // Zod coerce.number will handle conversion for idEditorial
+  const handleSubmitForm = async (data: LibrosFormValues) => {
     await onSubmit(data, currentData?.idLibro);
   };
 
@@ -64,10 +63,10 @@ function LibroForm({ currentData, initialValues, onSubmit, onCancel, isSubmittin
     <Card className="max-w-2xl mx-auto">
       <CardHeader><CardTitle>{currentData ? 'Editar Libro' : (initialValues?.titulo ? 'Crear Libro (Sugerencias IA)' : 'Crear Nuevo Libro')}</CardTitle></CardHeader>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(handleSubmit)}>
+        <form onSubmit={form.handleSubmit(handleSubmitForm)}>
           <CardContent className="space-y-6">
-            <FormField control={form.control} name="titulo" render={({ field }) => (<FormItem><FormLabel>Título</FormLabel><FormControl><Input placeholder="Ej: Cien Años de Soledad" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>)} />
-            <FormField control={form.control} name="anioPublicacion" render={({ field }) => (<FormItem><FormLabel>Año de Publicación</FormLabel><FormControl><Input type="text" maxLength={4} placeholder="Ej: 1967" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>)} />
+            <FormField control={form.control} name="titulo" render={({ field }) => (<FormItem><FormLabel>Título</FormLabel><FormControl><Input placeholder="Ej: Cien Años de Soledad" {...field} onChange={e => field.onChange(e.target.value)} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>)} />
+            <FormField control={form.control} name="anioPublicacion" render={({ field }) => (<FormItem><FormLabel>Año de Publicación</FormLabel><FormControl><Input type="text" maxLength={4} placeholder="Ej: 1967" {...field} onChange={e => field.onChange(e.target.value)} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>)} />
             <FormField
               control={form.control}
               name="idEditorial"
@@ -139,7 +138,6 @@ export default function LibrosPage() {
       setInitialFormValues({
         titulo: prefillTitle,
         anioPublicacion: prefillYear || '',
-        // idEditorial will be empty string by default if not provided
       });
       setShowForm(true); 
       router.replace('/libros', { scroll: false }); 
@@ -195,6 +193,7 @@ export default function LibrosPage() {
       loadData();
     } catch (err) {
       toast({ title: "Error", description: "Error al eliminar libro.", variant: "destructive" });
+      console.error("Error en handleDelete (Libros):", err);
     } finally {
       setIsSubmitting(false); setShowDeleteConfirm(false); setItemToDelete(null);
     }
@@ -229,3 +228,5 @@ export default function LibrosPage() {
     </div>
   );
 }
+
+    

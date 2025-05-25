@@ -20,7 +20,7 @@ import { prestamoSchema } from '@/lib/schemas';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { z } from 'zod';
+import { z } from 'zod'; // Added Zod import
 
 // PrestamoForm Component
 interface PrestamoFormProps {
@@ -56,8 +56,7 @@ function PrestamoForm({ currentData, onSubmit, onCancel, isSubmitting }: Prestam
     }
   }, [currentData, form]);
 
-  const handleSubmit = async (data: PrestamosFormValues) => {
-    // Zod coerce.number will handle conversion for IDs
+  const handleSubmitForm = async (data: PrestamosFormValues) => {
     await onSubmit(data, currentData?.idPrestamo);
   };
 
@@ -65,7 +64,7 @@ function PrestamoForm({ currentData, onSubmit, onCancel, isSubmitting }: Prestam
     <Card className="max-w-2xl mx-auto">
       <CardHeader><CardTitle>{currentData ? 'Editar Préstamo' : 'Crear Nuevo Préstamo'}</CardTitle></CardHeader>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(handleSubmit)}>
+        <form onSubmit={form.handleSubmit(handleSubmitForm)}>
           <CardContent className="space-y-6">
             <FormField control={form.control} name="idLector" render={({ field }) => (<FormItem><FormLabel>ID Lector</FormLabel><FormControl><Input type="number" placeholder="Ej: 1" {...field} onChange={e => field.onChange(e.target.value)} value={field.value ?? ''}/></FormControl><FormMessage /></FormItem>)} />
             <FormField control={form.control} name="idBibliotecario" render={({ field }) => (<FormItem><FormLabel>ID Bibliotecario</FormLabel><FormControl><Input type="number" placeholder="Ej: 1" {...field} onChange={e => field.onChange(e.target.value)} value={field.value ?? ''}/></FormControl><FormMessage /></FormItem>)} />
@@ -147,6 +146,7 @@ export default function PrestamosPage() {
       setData(result);
     } catch (err) {
       toast({ title: "Error", description: "Error al cargar préstamos.", variant: "destructive" });
+      console.error("Error en loadData (Prestamos):", err);
     } finally {
       setLoading(false);
     }
@@ -172,6 +172,7 @@ export default function PrestamosPage() {
       } else {
         toast({ title: "Error", description: err.message || "Error al guardar el préstamo.", variant: "destructive" });
       }
+      console.error("Error en handleSubmit (Prestamos):", err);
     } finally {
       setIsSubmitting(false);
     }
@@ -186,6 +187,7 @@ export default function PrestamosPage() {
       loadData();
     } catch (err) {
       toast({ title: "Error", description: "Error al eliminar préstamo.", variant: "destructive" });
+      console.error("Error en handleDelete (Prestamos):", err);
     } finally {
       setIsSubmitting(false); setShowDeleteConfirm(false); setItemToDelete(null);
     }
@@ -220,3 +222,5 @@ export default function PrestamosPage() {
     </div>
   );
 }
+
+    

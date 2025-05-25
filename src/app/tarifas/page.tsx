@@ -15,6 +15,7 @@ import { Input } from '@/components/ui/input';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { tarifaSchema } from '@/lib/schemas';
+import { z } from 'zod'; // Added Zod import
 
 // TarifaForm Component
 interface TarifaFormProps {
@@ -46,8 +47,7 @@ function TarifaForm({ currentData, onSubmit, onCancel, isSubmitting }: TarifaFor
     }
   }, [currentData, form]);
 
-  const handleSubmit = async (data: TarifasFormValues) => {
-    // Zod coerce.number will handle conversion
+  const handleSubmitForm = async (data: TarifasFormValues) => {
     await onSubmit(data, currentData?.idTarifa);
   };
 
@@ -55,7 +55,7 @@ function TarifaForm({ currentData, onSubmit, onCancel, isSubmitting }: TarifaFor
     <Card className="max-w-2xl mx-auto">
       <CardHeader><CardTitle>{currentData ? 'Editar Tarifa' : 'Crear Nueva Tarifa'}</CardTitle></CardHeader>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(handleSubmit)}>
+        <form onSubmit={form.handleSubmit(handleSubmitForm)}>
           <CardContent className="space-y-6">
             <FormField control={form.control} name="idPrestamo" render={({ field }) => (<FormItem><FormLabel>ID Préstamo</FormLabel><FormControl><Input type="number" placeholder="Ej: 1" {...field} onChange={e => field.onChange(e.target.value)} value={field.value ?? ''}/></FormControl><FormMessage /></FormItem> )} />
             <FormField control={form.control} name="diasRetraso" render={({ field }) => (<FormItem><FormLabel>Días de Retraso</FormLabel><FormControl><Input type="number" placeholder="Ej: 5" {...field} onChange={e => field.onChange(e.target.value)} value={field.value ?? ''}/></FormControl><FormMessage /></FormItem> )} />
@@ -122,6 +122,7 @@ export default function TarifasPage() {
       setData(result);
     } catch (err) {
       toast({ title: "Error", description: "Error al cargar tarifas.", variant: "destructive" });
+      console.error("Error en loadData (Tarifas):", err);
     } finally {
       setLoading(false);
     }
@@ -132,7 +133,6 @@ export default function TarifasPage() {
   const handleSubmit = async (formData: TarifasFormValues, id?: number) => {
     setIsSubmitting(true);
     try {
-      // formData values are already strings from the form, Zod will coerce them
       const coercedData = tarifaSchema.parse(formData);
 
       if (id) {
@@ -149,6 +149,7 @@ export default function TarifasPage() {
       } else {
         toast({ title: "Error", description: err.message || "Error al guardar la tarifa.", variant: "destructive" });
       }
+      console.error("Error en handleSubmit (Tarifas):", err);
     } finally {
       setIsSubmitting(false);
     }
@@ -163,6 +164,7 @@ export default function TarifasPage() {
       loadData();
     } catch (err) {
       toast({ title: "Error", description: "Error al eliminar tarifa.", variant: "destructive" });
+      console.error("Error en handleDelete (Tarifas):", err);
     } finally {
       setIsSubmitting(false); setShowDeleteConfirm(false); setItemToDelete(null);
     }
@@ -197,3 +199,5 @@ export default function TarifasPage() {
     </div>
   );
 }
+
+    

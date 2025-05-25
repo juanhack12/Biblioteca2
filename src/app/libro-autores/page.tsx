@@ -15,7 +15,7 @@ import { Input } from '@/components/ui/input';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { libroAutorSchema } from '@/lib/schemas';
-import { z } from 'zod';
+import { z } from 'zod'; // Added Zod import
 
 // LibroAutorForm Component
 interface LibroAutorFormProps {
@@ -47,8 +47,7 @@ function LibroAutorForm({ currentData, onSubmit, onCancel, isSubmitting }: Libro
     }
   }, [currentData, form]);
 
-  const handleSubmit = async (data: LibroAutoresFormValues) => {
-    // Zod coerce.number will handle conversion
+  const handleSubmitForm = async (data: LibroAutoresFormValues) => {
     await onSubmit(data);
   };
 
@@ -56,7 +55,7 @@ function LibroAutorForm({ currentData, onSubmit, onCancel, isSubmitting }: Libro
     <Card className="max-w-2xl mx-auto">
       <CardHeader><CardTitle>{currentData ? 'Editar Relación Libro-Autor' : 'Crear Nueva Relación'}</CardTitle></CardHeader>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(handleSubmit)}>
+        <form onSubmit={form.handleSubmit(handleSubmitForm)}>
           <CardContent className="space-y-6">
             <FormField
               control={form.control}
@@ -68,7 +67,7 @@ function LibroAutorForm({ currentData, onSubmit, onCancel, isSubmitting }: Libro
               name="idAutor"
               render={({ field }) => (<FormItem><FormLabel>ID Autor</FormLabel><FormControl><Input type="number" placeholder="Ej: 1" {...field} readOnly={!!currentData} className={currentData ? 'bg-muted' : ''} onChange={e => field.onChange(e.target.value)} value={field.value ?? ''}/></FormControl><FormMessage /></FormItem>)}
             />
-            <FormField control={form.control} name="rol" render={({ field }) => (<FormItem><FormLabel>Rol</FormLabel><FormControl><Input placeholder="Ej: Autor Principal" {...field} value={field.value ?? ''}/></FormControl><FormMessage /></FormItem>)} />
+            <FormField control={form.control} name="rol" render={({ field }) => (<FormItem><FormLabel>Rol</FormLabel><FormControl><Input placeholder="Ej: Autor Principal" {...field} onChange={e => field.onChange(e.target.value)} value={field.value ?? ''}/></FormControl><FormMessage /></FormItem>)} />
           </CardContent>
           <CardFooter className="flex justify-end space-x-4">
             <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>Cancelar</Button>
@@ -131,6 +130,7 @@ export default function LibroAutoresPage() {
       setData(result);
     } catch (err) {
       toast({ title: "Error", description: "Error al cargar relaciones.", variant: "destructive" });
+      console.error("Error en loadData (LibroAutores):", err);
     } finally {
       setLoading(false);
     }
@@ -156,6 +156,7 @@ export default function LibroAutoresPage() {
       } else {
         toast({ title: "Error", description: err.message || "Error al guardar la relación.", variant: "destructive" });
       }
+      console.error("Error en handleSubmit (LibroAutores):", err);
     } finally {
       setIsSubmitting(false);
     }
@@ -170,6 +171,7 @@ export default function LibroAutoresPage() {
       loadData();
     } catch (err) {
       toast({ title: "Error", description: "Error al eliminar relación.", variant: "destructive" });
+      console.error("Error en handleDelete (LibroAutores):", err);
     } finally {
       setIsSubmitting(false); setShowDeleteConfirm(false); setItemToDelete(null);
     }
@@ -204,3 +206,5 @@ export default function LibroAutoresPage() {
     </div>
   );
 }
+
+    

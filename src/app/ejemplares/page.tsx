@@ -15,6 +15,7 @@ import { Input } from '@/components/ui/input';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ejemplarSchema } from '@/lib/schemas';
+import { z } from 'zod'; // Added Zod import
 
 // EjemplarForm Component
 interface EjemplarFormProps {
@@ -28,7 +29,7 @@ function EjemplarForm({ currentData, onSubmit, onCancel, isSubmitting }: Ejempla
   const form = useForm<EjemplaresFormValues>({
     resolver: zodResolver(ejemplarSchema),
     defaultValues: {
-      idLibro: currentData?.idLibro ?? undefined,
+      idLibro: currentData?.idLibro?.toString() ?? '',
       ubicacion: currentData?.ubicacion || '',
     },
   });
@@ -36,23 +37,19 @@ function EjemplarForm({ currentData, onSubmit, onCancel, isSubmitting }: Ejempla
   useEffect(() => {
     if (currentData) {
       form.reset({
-        idLibro: currentData.idLibro,
+        idLibro: currentData.idLibro.toString(),
         ubicacion: currentData.ubicacion,
       });
     } else {
       form.reset({
-        idLibro: undefined,
+        idLibro: '',
         ubicacion: '',
       });
     }
   }, [currentData, form]);
 
-  const handleSubmit = async (data: EjemplaresFormValues) => {
-    const payload = {
-      ...data,
-      idLibro: Number(data.idLibro), // Zod schema now requires number
-    };
-    await onSubmit(payload, currentData?.idEjemplar);
+  const handleSubmitForm = async (data: EjemplaresFormValues) => {
+    await onSubmit(data, currentData?.idEjemplar);
   };
 
   return (
@@ -61,7 +58,7 @@ function EjemplarForm({ currentData, onSubmit, onCancel, isSubmitting }: Ejempla
         <CardTitle>{currentData ? 'Editar Ejemplar' : 'Crear Nuevo Ejemplar'}</CardTitle>
       </CardHeader>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(handleSubmit)}>
+        <form onSubmit={form.handleSubmit(handleSubmitForm)}>
           <CardContent className="space-y-6">
             <FormField
               control={form.control}
@@ -70,7 +67,7 @@ function EjemplarForm({ currentData, onSubmit, onCancel, isSubmitting }: Ejempla
                 <FormItem>
                   <FormLabel>ID Libro</FormLabel>
                   <FormControl>
-                    <Input type="number" placeholder="Ej: 101" {...field} onChange={e => field.onChange(e.target.value === '' ? undefined : Number(e.target.value))} value={field.value ?? ''} />
+                    <Input type="number" placeholder="Ej: 101" {...field} onChange={e => field.onChange(e.target.value)} value={field.value ?? ''} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -83,7 +80,7 @@ function EjemplarForm({ currentData, onSubmit, onCancel, isSubmitting }: Ejempla
                 <FormItem>
                   <FormLabel>Ubicación</FormLabel>
                   <FormControl>
-                    <Input placeholder="Ej: Estante A-3, Fila 2" {...field} />
+                    <Input placeholder="Ej: Estante A-3, Fila 2" {...field} onChange={e => field.onChange(e.target.value)} value={field.value ?? ''} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -151,6 +148,7 @@ export default function EjemplaresPage() {
       setData(result);
     } catch (err) {
       toast({ title: "Error", description: "Error al cargar ejemplares.", variant: "destructive" });
+      console.error("Error en loadData (Ejemplares):", err);
     } finally {
       setLoading(false);
     }
@@ -161,17 +159,22 @@ export default function EjemplaresPage() {
   const handleSubmit = async (formData: EjemplaresFormValues, id?: number) => {
     setIsSubmitting(true);
     try {
-      const idLibroToSubmit = Number(formData.idLibro); // Already validated as number by Zod
+      const coercedData = ejemplarSchema.parse(formData);
       if (id) {
-        await updateEjemplar(id, idLibroToSubmit, formData.ubicacion);
+        await updateEjemplar(id, coercedData.idLibro, coercedData.ubicacion);
         toast({ title: "Éxito", description: "Ejemplar actualizado." });
       } else {
-        await createEjemplar(idLibroToSubmit, formData.ubicacion);
+        await createEjemplar(coercedData.idLibro, coercedData.ubicacion);
         toast({ title: "Éxito", description: "Ejemplar creado." });
       }
       setShowForm(false); setCurrentItem(null); loadData();
     } catch (err: any) {
-      toast({ title: "Error", description: err.message || "Error al guardar el ejemplar.", variant: "destructive" });
+      if (err instanceof z.ZodError) {
+        toast({ title: "Error de Validación", description: err.errors.map(e => e.message).join(', '), variant: "destructive"});
+      } else {
+        toast({ title: "Error", description: err.message || "Error al guardar el ejemplar.", variant: "destructive" });
+      }
+      console.error("Error en handleSubmit (Ejemplares):", err);
     } finally {
       setIsSubmitting(false);
     }
@@ -186,6 +189,7 @@ export default function EjemplaresPage() {
       loadData();
     } catch (err) {
       toast({ title: "Error", description: "Error al eliminar ejemplar.", variant: "destructive" });
+      console.error("Error en handleDelete (Ejemplares):", err);
     } finally {
       setIsSubmitting(false); setShowDeleteConfirm(false); setItemToDelete(null);
     }
@@ -220,3 +224,5 @@ export default function EjemplaresPage() {
     </div>
   );
 }
+
+    
