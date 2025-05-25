@@ -167,8 +167,9 @@ export default function EjemplaresPage() {
     const lowercasedFilter = searchTerm.toLowerCase();
     const filtered = data.filter(item => {
       return (
-        item.ubicacion.toLowerCase().includes(lowercasedFilter) ||
-        (item.idLibro && item.idLibro.toString().includes(searchTerm))
+        item.idEjemplar.toString().includes(searchTerm) ||
+        (item.idLibro && item.idLibro.toString().includes(searchTerm)) ||
+        item.ubicacion.toLowerCase().includes(lowercasedFilter)
       );
     });
     setFilteredData(filtered);
@@ -234,10 +235,10 @@ export default function EjemplaresPage() {
       {showForm ? ( <EjemplarForm currentData={currentItem} onSubmit={handleSubmit} onCancel={handleCancelForm} isSubmitting={isSubmitting} /> ) 
       : ( 
         <>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 mb-4">
             <Search className="h-5 w-5 text-muted-foreground" />
             <Input
-              placeholder="Buscar por ubicación o ID Libro..."
+              placeholder="Buscar por ID Ejemplar, ID Libro o ubicación..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="max-w-md"

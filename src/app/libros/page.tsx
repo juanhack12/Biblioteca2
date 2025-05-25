@@ -170,8 +170,9 @@ export default function LibrosPage() {
     const lowercasedFilter = searchTerm.toLowerCase();
     const filtered = data.filter(item => {
       return (
+        item.idLibro.toString().includes(searchTerm) ||
         item.titulo.toLowerCase().includes(lowercasedFilter) ||
-        item.anioPublicacion.toString().includes(lowercasedFilter) || // anioPublicacion es string
+        item.anioPublicacion.toString().includes(lowercasedFilter) || 
         item.idEditorial.toString().includes(searchTerm)
       );
     });
@@ -238,10 +239,10 @@ export default function LibrosPage() {
       {showForm ? ( <LibroForm currentData={currentItem} initialValues={initialFormValues} onSubmit={handleSubmit} onCancel={handleCancelForm} isSubmitting={isSubmitting} /> ) 
       : ( 
         <>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 mb-4">
             <Search className="h-5 w-5 text-muted-foreground" />
             <Input
-              placeholder="Buscar por título, año o ID Editorial..."
+              placeholder="Buscar por ID, título, año o ID Editorial..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="max-w-md"

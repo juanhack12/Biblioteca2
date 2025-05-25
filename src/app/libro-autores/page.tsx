@@ -149,9 +149,9 @@ export default function LibroAutoresPage() {
     const lowercasedFilter = searchTerm.toLowerCase();
     const filtered = data.filter(item => {
       return (
-        item.rol.toLowerCase().includes(lowercasedFilter) ||
         item.idLibro.toString().includes(searchTerm) ||
-        item.idAutor.toString().includes(searchTerm)
+        item.idAutor.toString().includes(searchTerm) ||
+        item.rol.toLowerCase().includes(lowercasedFilter)
       );
     });
     setFilteredData(filtered);
@@ -217,10 +217,10 @@ export default function LibroAutoresPage() {
       {showForm ? ( <LibroAutorForm currentData={currentItem} onSubmit={handleSubmit} onCancel={handleCancelForm} isSubmitting={isSubmitting} /> ) 
       : ( 
         <>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 mb-4">
             <Search className="h-5 w-5 text-muted-foreground" />
             <Input
-              placeholder="Buscar por rol, ID Libro o ID Autor..."
+              placeholder="Buscar por ID Libro, ID Autor o rol..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="max-w-md"

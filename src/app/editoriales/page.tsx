@@ -140,6 +140,7 @@ export default function EditorialesPage() {
     const lowercasedFilter = searchTerm.toLowerCase();
     const filtered = data.filter(item => {
       return (
+        item.idEditorial.toString().includes(searchTerm) ||
         item.nombre.toLowerCase().includes(lowercasedFilter) ||
         item.pais.toLowerCase().includes(lowercasedFilter) ||
         item.ciudad.toLowerCase().includes(lowercasedFilter) ||
@@ -207,10 +208,10 @@ export default function EditorialesPage() {
       {showForm ? ( <EditorialForm currentData={currentItem} onSubmit={handleSubmit} onCancel={handleCancelForm} isSubmitting={isSubmitting} /> ) 
       : ( 
         <>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 mb-4">
             <Search className="h-5 w-5 text-muted-foreground" />
             <Input
-              placeholder="Buscar editoriales..."
+              placeholder="Buscar editoriales por ID, nombre, país, ciudad o web..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="max-w-md"

@@ -19,8 +19,6 @@ interface AutorListProps {
 export function AutorList({ autores, onEdit, onDelete }: AutorListProps) {
   const formatDate = (dateString?: string) => {
     if (!dateString) return 'N/A';
-    // Ensure dateString is a valid date format that new Date() can parse correctly,
-    // especially if it's just 'YYYY-MM-DD'. Adding 'T00:00:00' makes it UTC.
     const date = new Date(dateString + 'T00:00:00');
     return format(date, 'PPP', { locale: es });
   };
@@ -30,7 +28,7 @@ export function AutorList({ autores, onEdit, onDelete }: AutorListProps) {
       <CardHeader><CardTitle>Lista de Autores</CardTitle></CardHeader>
       <CardContent>
         {autores.length === 0 ? (
-          <p className="text-muted-foreground">No hay autores registrados.</p>
+          <p className="text-muted-foreground">No hay autores registrados o que coincidan con la búsqueda.</p>
         ) : (
           <div className="overflow-x-auto">
             <Table><TableHeader><TableRow><TableHead>ID</TableHead><TableHead>Nombre</TableHead><TableHead>Apellido</TableHead><TableHead>Fecha Nacimiento</TableHead><TableHead>Nacionalidad</TableHead><TableHead className="text-right">Acciones</TableHead></TableRow></TableHeader>

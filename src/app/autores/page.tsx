@@ -31,16 +31,32 @@ export default function AutoresPage() {
     try {
       const data = await getAllAutores();
       setAutores(data);
-      setFilteredAutores(data);
+      setFilteredAutores(data); // Initialize filteredAutores with all data
     } catch (error: any) {
       let description = "Error al cargar autores. Por favor, inténtalo de nuevo más tarde.";
       if (axios.isAxiosError(error)) {
-        if (error.response) {
-          description = `Error del servidor (${error.response.status}). No se pudieron cargar los autores.`;
-        } else if (error.request) {
-          description = `Error de red al cargar autores. Verifica tu conexión y que el servidor API (${API_BASE_URL}) esté accesible.`;
+        console.error("Full Axios error object (loadAutores):", error);
+        console.error("error.message:", error.message);
+        console.error("error.code:", error.code);
+        console.error("error.response?.status:", error.response?.status);
+        console.error("error.response?.data:", error.response?.data);
+        console.error("error.config?.url:", error.config?.url);
+        console.error("Is Axios error flag:", error.isAxiosError);
+        console.error("Request object present:", !!error.request);
+        console.error("Response object present:", !!error.response);
+        if(error.request) {
+          console.error("Request details (if available):", error.request);
+        }
+        if(error.response) {
+          console.error("Response details (if available):", error.response);
+        }
+
+        const errorCode = error.code; // e.g., 'ECONNREFUSED', 'ERR_NETWORK', 'ERR_BAD_REQUEST', 'ERR_CERT_AUTHORITY_INVALID'
+        
+        if (errorCode === 'ERR_NETWORK' || !error.response) {
+          description = `Error de red al cargar autores. Verifica tu conexión y que el servidor API (${API_BASE_URL}) esté accesible. Código: ${errorCode || 'N/A'}`;
         } else {
-          description = `Error de configuración al cargar autores: ${error.message}`;
+          description = `Error del servidor (${error.response.status}). No se pudieron cargar los autores. Código: ${errorCode || 'N/A'}`;
         }
       } else {
         console.error("Non-Axios error in loadAutores:", error);
@@ -65,8 +81,10 @@ export default function AutoresPage() {
     const lowercasedFilter = searchTerm.toLowerCase();
     const filtered = autores.filter(autor => {
       return (
+        autor.idAutor.toString().includes(searchTerm) || // Search by ID
         autor.nombre.toLowerCase().includes(lowercasedFilter) ||
         autor.apellido.toLowerCase().includes(lowercasedFilter) ||
+        (autor.fechaNacimiento && autor.fechaNacimiento.toLowerCase().includes(lowercasedFilter)) ||
         (autor.nacionalidad && autor.nacionalidad.toLowerCase().includes(lowercasedFilter))
       );
     });
@@ -160,10 +178,10 @@ export default function AutoresPage() {
         />
       ) : (
         <>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 mb-4">
             <Search className="h-5 w-5 text-muted-foreground" />
             <Input
-              placeholder="Buscar autores por nombre, apellido o nacionalidad..."
+              placeholder="Buscar autores por ID, nombre, apellido, fecha o nacionalidad..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="max-w-md"

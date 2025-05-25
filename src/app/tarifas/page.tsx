@@ -138,13 +138,13 @@ export default function TarifasPage() {
       setFilteredData(data);
       return;
     }
-    // No toLowerCase for IDs/numbers as they are numbers being converted to string for search
+    const lowercasedFilter = searchTerm.toLowerCase(); // searchTerm is always string
     const filtered = data.filter(item => {
       return (
+        item.idTarifa.toString().includes(searchTerm) ||
         item.idPrestamo.toString().includes(searchTerm) ||
         item.diasRetraso.toString().includes(searchTerm) ||
-        item.montoTarifa.toString().includes(searchTerm) ||
-        item.idTarifa.toString().includes(searchTerm)
+        item.montoTarifa.toString().toLowerCase().includes(lowercasedFilter)
       );
     });
     setFilteredData(filtered);
@@ -212,10 +212,10 @@ export default function TarifasPage() {
       {showForm ? ( <TarifaForm currentData={currentItem} onSubmit={handleSubmit} onCancel={handleCancelForm} isSubmitting={isSubmitting} /> ) 
       : ( 
         <>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 mb-4">
             <Search className="h-5 w-5 text-muted-foreground" />
             <Input
-              placeholder="Buscar por ID Préstamo, días, monto o ID Tarifa..."
+              placeholder="Buscar por ID Tarifa, ID Préstamo, días o monto..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="max-w-md"

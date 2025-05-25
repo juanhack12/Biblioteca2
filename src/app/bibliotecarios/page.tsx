@@ -34,7 +34,7 @@ function BibliotecarioForm({ currentData, onSubmit, onCancel, isSubmitting }: Bi
   const form = useForm<BibliotecariosFormValues>({
     resolver: zodResolver(bibliotecarioSchema),
     defaultValues: {
-      idPersona: currentData?.idPersona ?? undefined,
+      idPersona: currentData?.idPersona?.toString() ?? '',
       fechaContratacion: currentData?.fechaContratacion || undefined,
       turno: currentData?.turno || '',
     },
@@ -43,13 +43,13 @@ function BibliotecarioForm({ currentData, onSubmit, onCancel, isSubmitting }: Bi
   useEffect(() => {
     if (currentData) {
       form.reset({
-        idPersona: currentData.idPersona,
+        idPersona: currentData.idPersona?.toString() ?? '',
         fechaContratacion: currentData.fechaContratacion || undefined,
         turno: currentData.turno,
       });
     } else {
       form.reset({
-        idPersona: undefined,
+        idPersona: '',
         fechaContratacion: undefined,
         turno: '',
       });
@@ -75,7 +75,7 @@ function BibliotecarioForm({ currentData, onSubmit, onCancel, isSubmitting }: Bi
                 <FormItem>
                   <FormLabel>ID Persona</FormLabel>
                   <FormControl>
-                    <Input type="number" placeholder="Ej: 1" {...field} onChange={e => field.onChange(e.target.value === '' ? undefined : Number(e.target.value))} value={field.value ?? ''} />
+                    <Input type="number" placeholder="Ej: 1" {...field} onChange={e => field.onChange(e.target.value)} value={field.value ?? ''} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -150,7 +150,7 @@ interface BibliotecarioListProps {
 function BibliotecarioList({ items, onEdit, onDelete }: BibliotecarioListProps) {
    const formatDate = (dateString?: string) => {
     if (!dateString) return 'N/A';
-    const date = new Date(dateString + 'T00:00:00'); // Ensure UTC interpretation for YYYY-MM-DD
+    const date = new Date(dateString + 'T00:00:00'); 
     return format(date, 'PPP', { locale: es });
   };
   return (
@@ -217,8 +217,10 @@ export default function BibliotecariosPage() {
     const lowercasedFilter = searchTerm.toLowerCase();
     const filtered = data.filter(item => {
       return (
-        item.turno.toLowerCase().includes(lowercasedFilter) ||
-        (item.idPersona && item.idPersona.toString().includes(searchTerm)) // Search by ID Persona if searchTerm is numeric
+        item.idBibliotecario.toString().includes(searchTerm) ||
+        (item.idPersona && item.idPersona.toString().includes(searchTerm)) ||
+        (item.fechaContratacion && item.fechaContratacion.toLowerCase().includes(lowercasedFilter)) ||
+        item.turno.toLowerCase().includes(lowercasedFilter)
       );
     });
     setFilteredData(filtered);
@@ -315,10 +317,10 @@ export default function BibliotecariosPage() {
         />
       ) : (
         <>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 mb-4">
             <Search className="h-5 w-5 text-muted-foreground" />
             <Input
-              placeholder="Buscar por turno o ID Persona..."
+              placeholder="Buscar por ID, ID Persona, fecha o turno..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="max-w-md"

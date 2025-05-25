@@ -162,13 +162,15 @@ export default function PrestamosPage() {
       setFilteredData(data);
       return;
     }
-    // No toLowerCase for IDs as they are numbers being converted to string for search
+    const lowercasedFilter = searchTerm.toLowerCase();
     const filtered = data.filter(item => {
       return (
+        item.idPrestamo.toString().includes(searchTerm) ||
         item.idLector.toString().includes(searchTerm) ||
         item.idBibliotecario.toString().includes(searchTerm) ||
         item.idEjemplar.toString().includes(searchTerm) ||
-        item.idPrestamo.toString().includes(searchTerm)
+        (item.fechaPrestamo && item.fechaPrestamo.toLowerCase().includes(lowercasedFilter)) ||
+        (item.fechaDevolucion && item.fechaDevolucion.toLowerCase().includes(lowercasedFilter))
       );
     });
     setFilteredData(filtered);
@@ -234,10 +236,10 @@ export default function PrestamosPage() {
       {showForm ? ( <PrestamoForm currentData={currentItem} onSubmit={handleSubmit} onCancel={handleCancelForm} isSubmitting={isSubmitting} /> ) 
       : ( 
         <>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 mb-4">
             <Search className="h-5 w-5 text-muted-foreground" />
             <Input
-              placeholder="Buscar por IDs (Lector, Bibliotecario, Ejemplar, Préstamo)..."
+              placeholder="Buscar por IDs (Lector, Bibliotecario, Ejemplar, Préstamo) o fechas..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="max-w-md"

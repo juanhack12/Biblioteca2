@@ -34,7 +34,7 @@ function LectorForm({ currentData, onSubmit, onCancel, isSubmitting }: LectorFor
   const form = useForm<LectoresFormValues>({
     resolver: zodResolver(lectorSchema),
     defaultValues: {
-      idPersona: currentData?.idPersona ?? undefined,
+      idPersona: currentData?.idPersona?.toString() ?? '',
       fechaRegistro: currentData?.fechaRegistro || undefined,
       ocupacion: currentData?.ocupacion || '',
     },
@@ -43,13 +43,13 @@ function LectorForm({ currentData, onSubmit, onCancel, isSubmitting }: LectorFor
   useEffect(() => {
     if (currentData) {
       form.reset({
-        idPersona: currentData.idPersona,
+        idPersona: currentData.idPersona?.toString() ?? '',
         fechaRegistro: currentData.fechaRegistro || undefined,
         ocupacion: currentData.ocupacion,
       });
     } else {
       form.reset({
-        idPersona: undefined,
+        idPersona: '',
         fechaRegistro: undefined,
         ocupacion: '',
       });
@@ -75,7 +75,7 @@ function LectorForm({ currentData, onSubmit, onCancel, isSubmitting }: LectorFor
                 <FormItem>
                   <FormLabel>ID Persona</FormLabel>
                   <FormControl>
-                    <Input type="number" placeholder="Ej: 1" {...field} onChange={e => field.onChange(e.target.value === '' ? undefined : Number(e.target.value))} value={field.value ?? ''} />
+                    <Input type="number" placeholder="Ej: 1" {...field} onChange={e => field.onChange(e.target.value)} value={field.value ?? ''} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -210,8 +210,10 @@ export default function LectoresPage() {
     const lowercasedFilter = searchTerm.toLowerCase();
     const filtered = data.filter(item => {
       return (
-        item.ocupacion.toLowerCase().includes(lowercasedFilter) ||
-        (item.idPersona && item.idPersona.toString().includes(searchTerm))
+        item.idLector.toString().includes(searchTerm) ||
+        (item.idPersona && item.idPersona.toString().includes(searchTerm)) ||
+        (item.fechaRegistro && item.fechaRegistro.toLowerCase().includes(lowercasedFilter)) ||
+        item.ocupacion.toLowerCase().includes(lowercasedFilter)
       );
     });
     setFilteredData(filtered);
@@ -277,10 +279,10 @@ export default function LectoresPage() {
       {showForm ? ( <LectorForm currentData={currentItem} onSubmit={handleSubmit} onCancel={handleCancelForm} isSubmitting={isSubmitting} /> ) 
       : ( 
         <>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 mb-4">
             <Search className="h-5 w-5 text-muted-foreground" />
             <Input
-              placeholder="Buscar por ocupación o ID Persona..."
+              placeholder="Buscar por ID Lector, ID Persona, fecha u ocupación..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="max-w-md"

@@ -187,9 +187,11 @@ export default function PersonasPage() {
     const lowercasedFilter = searchTerm.toLowerCase();
     const filtered = data.filter(item => {
       return (
+        item.idPersona.toString().includes(searchTerm) ||
         item.nombre.toLowerCase().includes(lowercasedFilter) ||
         item.apellido.toLowerCase().includes(lowercasedFilter) ||
         item.documentoIdentidad.toLowerCase().includes(lowercasedFilter) ||
+        (item.fechaNacimiento && item.fechaNacimiento.toLowerCase().includes(lowercasedFilter)) ||
         item.correo.toLowerCase().includes(lowercasedFilter) ||
         item.telefono.toLowerCase().includes(lowercasedFilter) ||
         item.direccion.toLowerCase().includes(lowercasedFilter)
@@ -256,10 +258,10 @@ export default function PersonasPage() {
       {showForm ? ( <PersonaForm currentData={currentItem} onSubmit={handleSubmit} onCancel={handleCancelForm} isSubmitting={isSubmitting} /> ) 
       : ( 
         <>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 mb-4">
             <Search className="h-5 w-5 text-muted-foreground" />
             <Input
-              placeholder="Buscar personas..."
+              placeholder="Buscar por ID, nombre, apellido, documento, fecha, correo, teléfono o dirección..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="max-w-md"
