@@ -1,6 +1,7 @@
+
 "use client";
 import Link from 'next/link';
-import { BookMarked, Users, Library, Book, ArrowRightLeft, CircleDollarSign, Wand2, Menu, Combine } from 'lucide-react';
+import { BookMarked, Users, Library, Book, ArrowRightLeft, CircleDollarSign, Menu, Combine } from 'lucide-react'; // Removed Wand2
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger, SheetClose } from '@/components/ui/sheet';
 import { usePathname } from 'next/navigation';
@@ -18,7 +19,7 @@ const navLinks = [
   { href: "/personas", label: "Personas", icon: Users },
   { href: "/prestamos", label: "Préstamos", icon: ArrowRightLeft },
   { href: "/tarifas", label: "Tarifas", icon: CircleDollarSign },
-  { href: "/ai-book-entry", label: "AI Book Entry", icon: Wand2 },
+  // Removed { href: "/ai-book-entry", label: "AI Book Entry", icon: Wand2 },
 ];
 
 export function Header() {
@@ -62,7 +63,7 @@ export function Header() {
            {navLinks.length > 5 && (
             <Sheet>
               <SheetTrigger asChild>
-                <Button variant="ghost" size="sm" className="md:hidden">
+                <Button variant="ghost" size="sm" className="md:hidden"> {/* This was for mobile "More", keeping structure */}
                   <Menu className="h-5 w-5" />
                   <span className="sr-only">Más</span>
                 </Button>
@@ -75,7 +76,7 @@ export function Header() {
               <SheetContent side="right" className="w-[280px] bg-card p-4">
                 <div className="mb-4 text-lg font-semibold text-card-foreground">Todas las Secciones</div>
                 <div className="flex flex-col space-y-1">
-                  {navLinks.map(link => (
+                  {navLinks.map(link => ( // This will now map over the updated (shorter) navLinks if more than 5 remain.
                     <SheetClose asChild key={link.href}>
                       <Link
                         href={link.href}
@@ -107,7 +108,7 @@ export function Header() {
             <SheetContent side="right" className="w-[300px] bg-card p-4">
               <div className="mb-6 text-lg font-semibold text-card-foreground">Navegación</div>
               <div className="flex flex-col space-y-1">
-                {navLinks.map(link => (
+                {navLinks.map(link => ( // Maps over the updated navLinks
                    <NavLinkItem key={link.href} href={link.href} label={link.label} icon={link.icon} isSheetClose={true}/>
                 ))}
               </div>
