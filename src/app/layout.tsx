@@ -39,6 +39,35 @@ export default function RootLayout({
           <main className="flex-1 container mx-auto px-4 py-8 md:px-6 lg:px-8">
             {children}
           </main>
+
+ <footer className="bg-muted py-6 px-4 md:px-6">
+ <div className="container mx-auto flex flex-col items-center justify-between gap-4 md:flex-row">
+ <div className="text-center md:text-left">
+ <p className="text-sm text-muted-foreground">
+ &copy; {new Date().getFullYear()} BiblioTech. Todos los derechos reservados.
+ </p>
+ <p className="text-sm text-muted-foreground">
+ Contacto:{" "}
+ <a href="mailto:info@bibliotech.com" className="hover:underline">
+ info@bibliotech.com
+ </a>{" "}
+ | Teléfono: +123 456 7890
+ </p>
+ </div>
+ <div className="flex gap-4">
+ {/* Aquí puedes agregar iconos o enlaces a redes sociales */}
+ <a href="#" className="text-muted-foreground hover:text-foreground">
+ Facebook
+ </a>
+ <a href="#" className="text-muted-foreground hover:text-foreground">
+ Twitter
+ </a>
+ <a href="#" className="text-muted-foreground hover:text-foreground">
+ Instagram
+ </a>
+ </div>
+ </div>
+ </footer>
           <Toaster />
         </div>
       </body>
