@@ -3,7 +3,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"; // Ensured CardFooter is here
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { BookOpen, Users, ArrowRight, ArrowRightLeft, Library, UserCheck, BookCopy, Loader2, TrendingUp } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -33,7 +33,7 @@ function FeatureCard({ icon, title, description, link, linkLabel }: FeatureCardP
       <CardContent className="text-center flex-grow">
         <p className="text-muted-foreground mb-6">{description}</p>
       </CardContent>
-      <CardFooter className="justify-center"> {/* This is where CardFooter is used */}
+      <CardFooter className="justify-center">
         <Button variant="outline" asChild className="bg-accent hover:bg-accent/90 text-accent-foreground border-accent hover:border-accent/90">
           <Link href={link}>
             {linkLabel} <ArrowRight className="ml-2 h-4 w-4" />
@@ -72,10 +72,10 @@ function StatCard({ title, value, icon, loading, description }: StatCardProps) {
 }
 
 const recentBooksPlaceholder = [
-  { id: 1, title: "El Jardín de las Mariposas", author: "Dot Hutchison", imageUrl: "https://placehold.co/300x450.png", dataAiHint: "thriller book" },
-  { id: 2, title: "Fuego y Sangre", author: "George R.R. Martin", imageUrl: "https://placehold.co/300x450.png", dataAiHint: "fantasy saga" },
-  { id: 3, title: "La Sombra del Viento", author: "Carlos Ruiz Zafón", imageUrl: "https://placehold.co/300x450.png", dataAiHint: "mystery novel" },
-  { id: 4, title: "Educated", author: "Tara Westover", imageUrl: "https://placehold.co/300x450.png", dataAiHint: "memoir book" },
+  { id: 1, title: "El Jardín de las Mariposas", author: "Dot Hutchison", imageUrl: "https://placehold.co/300x450/3F51B5/FFFFFF.png", dataAiHint: "thriller book" },
+  { id: 2, title: "Fuego y Sangre", author: "George R.R. Martin", imageUrl: "https://placehold.co/300x450/FFAB40/000000.png", dataAiHint: "fantasy saga" },
+  { id: 3, title: "La Sombra del Viento", author: "Carlos Ruiz Zafón", imageUrl: "https://placehold.co/300x450/4A90E2/FFFFFF.png", dataAiHint: "mystery novel" },
+  { id: 4, title: "Educated", author: "Tara Westover", imageUrl: "https://placehold.co/300x450/7ED321/000000.png", dataAiHint: "memoir book" },
 ];
 
 export default function HomePage() {
@@ -88,15 +88,34 @@ export default function HomePage() {
     const fetchStats = async () => {
       setLoadingStats(true);
       try {
-        const [librosData, lectoresData, autoresData] = await Promise.allSettled([
+        // Fetch all data in parallel
+        const [librosResult, lectoresResult, autoresResult] = await Promise.allSettled([
           getAllLibros(),
           getAllLectores(),
           getAllAutores()
         ]);
 
-        setTotalLibros(librosData.status === 'fulfilled' ? librosData.value.length : "N/A");
-        setTotalLectores(lectoresData.status === 'fulfilled' ? lectoresData.value.length : "N/A");
-        setTotalAutores(autoresData.status === 'fulfilled' ? autoresData.value.length : "N/A");
+        // Process results
+        if (librosResult.status === 'fulfilled') {
+          setTotalLibros(librosResult.value.length);
+        } else {
+          console.error("Error fetching libros for stats:", librosResult.reason);
+          setTotalLibros("N/A");
+        }
+
+        if (lectoresResult.status === 'fulfilled') {
+          setTotalLectores(lectoresResult.value.length);
+        } else {
+          console.error("Error fetching lectores for stats:", lectoresResult.reason);
+          setTotalLectores("N/A");
+        }
+
+        if (autoresResult.status === 'fulfilled') {
+          setTotalAutores(autoresResult.value.length);
+        } else {
+          console.error("Error fetching autores for stats:", autoresResult.reason);
+          setTotalAutores("N/A");
+        }
 
       } catch (error) {
         console.error("Error general al obtener estadísticas:", error);
@@ -213,8 +232,10 @@ export default function HomePage() {
               <div className="mt-4 flex justify-between">
                 <div>
                   <h3 className="text-md font-semibold text-card-foreground">
-                    <span aria-hidden="true" className="absolute inset-0" />
-                    {book.title}
+                    <Link href={`/libros`}> {/* Placeholder link, ideally to book details */}
+                       <span aria-hidden="true" className="absolute inset-0" />
+                       {book.title}
+                    </Link>
                   </h3>
                   <p className="mt-1 text-sm text-muted-foreground">{book.author}</p>
                 </div>
