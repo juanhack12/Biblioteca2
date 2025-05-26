@@ -62,9 +62,7 @@ function BibliotecarioForm({ currentData, onSubmit, onCancel, isSubmitting }: Bi
 
   return (
     <Card className="max-w-2xl mx-auto">
-      <CardHeader>
-        <CardTitle>{currentData ? 'Editar Bibliotecario' : 'Crear Nuevo Bibliotecario'}</CardTitle>
-      </CardHeader>
+      <CardHeader><CardTitle>{currentData ? 'Editar Bibliotecario' : 'Crear Nuevo Bibliotecario'}</CardTitle></CardHeader>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(handleSubmit)}>
           <CardContent className="space-y-6">
@@ -86,7 +84,7 @@ function BibliotecarioForm({ currentData, onSubmit, onCancel, isSubmitting }: Bi
               name="fechaContratacion"
               render={({ field }) => (
                 <FormItem className="flex flex-col">
-                  <FormLabel>Fecha de Contratación (Opcional)</FormLabel>
+                  <FormLabel>Fecha de Contratación</FormLabel>
                    <Popover>
                     <PopoverTrigger asChild>
                       <FormControl>
@@ -119,7 +117,7 @@ function BibliotecarioForm({ currentData, onSubmit, onCancel, isSubmitting }: Bi
                 <FormItem>
                   <FormLabel>Turno</FormLabel>
                   <FormControl>
-                    <Input placeholder="Ej: Matutino" {...field} />
+                    <Input placeholder="Ej: Matutino" {...field} value={field.value ?? ''} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -127,12 +125,8 @@ function BibliotecarioForm({ currentData, onSubmit, onCancel, isSubmitting }: Bi
             />
           </CardContent>
           <CardFooter className="flex justify-end space-x-4">
-            <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
-              Cancelar
-            </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? (currentData ? 'Actualizando...' : 'Creando...') : (currentData ? 'Actualizar' : 'Crear')}
-            </Button>
+            <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>Cancelar</Button>
+            <Button type="submit" disabled={isSubmitting}>{isSubmitting ? (currentData ? 'Actualizando...' : 'Creando...') : (currentData ? 'Actualizar' : 'Crear')}</Button>
           </CardFooter>
         </form>
       </Form>
@@ -150,7 +144,8 @@ interface BibliotecarioListProps {
 function BibliotecarioList({ items, onEdit, onDelete }: BibliotecarioListProps) {
    const formatDate = (dateString?: string) => {
     if (!dateString) return 'N/A';
-    const date = new Date(dateString + 'T00:00:00'); 
+    // Asegurarse de que la fecha se parsea correctamente añadiendo la hora si es solo fecha
+    const date = new Date(dateString.includes('T') ? dateString : dateString + 'T00:00:00');
     return format(date, 'PPP', { locale: es });
   };
   return (
@@ -161,10 +156,10 @@ function BibliotecarioList({ items, onEdit, onDelete }: BibliotecarioListProps) 
           <p className="text-muted-foreground">No hay bibliotecarios registrados o que coincidan con la búsqueda.</p>
         ) : (
           <div className="overflow-x-auto">
-            <Table><TableHeader><TableRow><TableHead>ID</TableHead><TableHead>ID Persona</TableHead><TableHead>Fecha Contratación</TableHead><TableHead>Turno</TableHead><TableHead className="text-right">Acciones</TableHead></TableRow></TableHeader>
+            <Table><TableHeader><TableRow><TableHead>ID</TableHead><TableHead>Nombre Completo</TableHead><TableHead>Documento</TableHead><TableHead>Fecha Contratación</TableHead><TableHead>Turno</TableHead><TableHead className="text-right">Acciones</TableHead></TableRow></TableHeader>
               <TableBody>
                 {items.map((item) => (
-                  <TableRow key={item.idBibliotecario}><TableCell>{item.idBibliotecario}</TableCell><TableCell>{item.idPersona || 'N/A'}</TableCell><TableCell>{formatDate(item.fechaContratacion)}</TableCell><TableCell>{item.turno}</TableCell><TableCell className="text-right space-x-2">
+                  <TableRow key={item.idBibliotecario}><TableCell>{item.idBibliotecario}</TableCell><TableCell>{item.nombre && item.apellido ? `${item.nombre} ${item.apellido}` : (item.idPersona || 'N/A')}</TableCell><TableCell>{item.documentoIdentidad || 'N/A'}</TableCell><TableCell>{formatDate(item.fechaContratacion)}</TableCell><TableCell>{item.turno}</TableCell><TableCell className="text-right space-x-2">
                       <Button variant="outline" size="icon" onClick={() => onEdit(item)} aria-label="Editar"><Edit className="h-4 w-4" /></Button>
                       <Button variant="destructive" size="icon" onClick={() => onDelete(item.idBibliotecario)} aria-label="Eliminar"><Trash2 className="h-4 w-4" /></Button>
                     </TableCell></TableRow>
@@ -198,8 +193,10 @@ export default function BibliotecariosPage() {
       const result = await getAllBibliotecarios();
       setData(result);
       setFilteredData(result);
-    } catch (err) {
-      toast({ title: "Error", description: "Error al cargar bibliotecarios.", variant: "destructive" });
+    } catch (err: any) {
+      console.error("Full Axios error object (loadData Bibliotecarios):", err);
+      const description = err.response?.data?.message || err.message || "Error al cargar bibliotecarios.";
+      toast({ title: "Error de Carga", description, variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -216,9 +213,12 @@ export default function BibliotecariosPage() {
     }
     const lowercasedFilter = searchTerm.toLowerCase();
     const filtered = data.filter(item => {
+      const nombreCompleto = item.nombre && item.apellido ? `${item.nombre} ${item.apellido}`.toLowerCase() : '';
       return (
         item.idBibliotecario.toString().includes(searchTerm) ||
         (item.idPersona && item.idPersona.toString().includes(searchTerm)) ||
+        nombreCompleto.includes(lowercasedFilter) ||
+        (item.documentoIdentidad && item.documentoIdentidad.toLowerCase().includes(lowercasedFilter)) ||
         (item.fechaContratacion && item.fechaContratacion.toLowerCase().includes(lowercasedFilter)) ||
         item.turno.toLowerCase().includes(lowercasedFilter)
       );
@@ -229,14 +229,16 @@ export default function BibliotecariosPage() {
   const handleSubmit = async (formData: BibliotecariosFormValues, id?: number) => {
     setIsSubmitting(true);
     try {
-      const coercedData = bibliotecarioSchema.parse(formData);
+      // idPersona es string del form, Zod lo coercerá a number
+      const coercedData = bibliotecarioSchema.parse(formData); 
+      const idPersonaNum = Number(coercedData.idPersona); // Ya validado por Zod como coercible a número
       const fechaContratacionToSubmit = coercedData.fechaContratacion || undefined;
 
       if (id) {
-        await updateBibliotecario(id, coercedData.idPersona, fechaContratacionToSubmit, coercedData.turno);
+        await updateBibliotecario(id, idPersonaNum, fechaContratacionToSubmit, coercedData.turno);
         toast({ title: "Éxito", description: "Bibliotecario actualizado." });
       } else {
-        await createBibliotecario(coercedData.idPersona, fechaContratacionToSubmit, coercedData.turno);
+        await createBibliotecario(idPersonaNum, fechaContratacionToSubmit, coercedData.turno);
         toast({ title: "Éxito", description: "Bibliotecario creado." });
       }
       setShowForm(false);
@@ -246,7 +248,9 @@ export default function BibliotecariosPage() {
       if (err instanceof z.ZodError) {
         toast({ title: "Error de Validación", description: err.errors.map(e => e.message).join(', '), variant: "destructive"});
       } else {
-        toast({ title: "Error", description: err.message || "Error al guardar el bibliotecario.", variant: "destructive" });
+        console.error("Error en handleSubmit (Bibliotecarios):", err);
+        const description = err.response?.data?.message || err.message || "Error al guardar el bibliotecario.";
+        toast({ title: "Error", description, variant: "destructive" });
       }
     } finally {
       setIsSubmitting(false);
@@ -260,8 +264,10 @@ export default function BibliotecariosPage() {
       await deleteBibliotecario(itemToDelete);
       toast({ title: "Éxito", description: "Bibliotecario eliminado." });
       loadData();
-    } catch (err) {
-      toast({ title: "Error", description: "Error al eliminar bibliotecario.", variant: "destructive" });
+    } catch (err: any) {
+      console.error("Error en handleDelete (Bibliotecarios):", err);
+      const description = err.response?.data?.message || err.message || "Error al eliminar bibliotecario.";
+      toast({ title: "Error", description, variant: "destructive" });
     } finally {
       setIsSubmitting(false);
       setShowDeleteConfirm(false);
@@ -320,7 +326,7 @@ export default function BibliotecariosPage() {
           <div className="flex items-center gap-2 mb-4">
             <Search className="h-5 w-5 text-muted-foreground" />
             <Input
-              placeholder="Buscar por ID, ID Persona, fecha o turno..."
+              placeholder="Buscar por ID, Nombre, Documento, fecha o turno..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="max-w-md"
@@ -336,19 +342,8 @@ export default function BibliotecariosPage() {
 
       <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
         <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>¿Confirmar eliminación?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Esta acción no se puede deshacer. ¿Seguro que quieres eliminar este bibliotecario?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setShowDeleteConfirm(false)} disabled={isSubmitting}>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} disabled={isSubmitting} className="bg-destructive hover:bg-destructive/90">
-              {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-              Eliminar
-            </AlertDialogAction>
-          </AlertDialogFooter>
+          <AlertDialogHeader><AlertDialogTitle>¿Confirmar eliminación?</AlertDialogTitle><AlertDialogDescription>Esta acción no se puede deshacer. ¿Seguro que quieres eliminar este bibliotecario?</AlertDialogDescription></AlertDialogHeader>
+          <AlertDialogFooter><AlertDialogCancel onClick={() => setShowDeleteConfirm(false)} disabled={isSubmitting}>Cancelar</AlertDialogCancel><AlertDialogAction onClick={handleDelete} disabled={isSubmitting} className="bg-destructive hover:bg-destructive/90">{isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}Eliminar</AlertDialogAction></AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </div>
