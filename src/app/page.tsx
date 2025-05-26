@@ -132,7 +132,7 @@ export default function HomePage() {
   return (
     <div className="space-y-16 py-8">
       <section className="text-center">
-        <h1 className="text-5xl font-extrabold tracking-tight text-primary sm:text-6xl md:text-7xl mb-6">
+        <h1 className="text-5xl font-extrabold tracking-tight sm:text-6xl md:text-7xl mb-6 bg-gradient-to-r from-accent to-primary text-transparent bg-clip-text">
           Bienvenido a BiblioTech
         </h1>
         <p className="max-w-3xl mx-auto text-xl text-muted-foreground mb-10">
