@@ -3,10 +3,12 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import type { LibrosModel, LibrosFormValues } from '@/lib/types';
+import type { LibrosModel, LibrosFormValues, EditorialesModel } from '@/lib/types'; // Added EditorialesModel
 import { getAllLibros, createLibro, updateLibro, deleteLibro } from '@/lib/services/libros';
+import { getAllEditoriales } from '@/lib/services/editoriales'; // To fetch editoriales for dropdown
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'; // Added Select
 import { useToast } from '@/hooks/use-toast';
 import { PlusCircle, Loader2, BookOpen, Edit, Trash2, Search } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
@@ -25,9 +27,10 @@ interface LibroFormProps {
   onSubmit: (data: LibrosFormValues, id?: number) => Promise<void>;
   onCancel: () => void;
   isSubmitting: boolean;
+  editoriales: EditorialesModel[]; // Add editoriales prop
 }
 
-function LibroForm({ currentData, initialValues, onSubmit, onCancel, isSubmitting }: LibroFormProps) {
+function LibroForm({ currentData, initialValues, onSubmit, onCancel, isSubmitting, editoriales }: LibroFormProps) {
   const form = useForm<LibrosFormValues>({
     resolver: zodResolver(libroSchema),
     defaultValues: {
@@ -56,7 +59,12 @@ function LibroForm({ currentData, initialValues, onSubmit, onCancel, isSubmittin
   }, [currentData, initialValues, form]);
 
   const handleSubmitForm = async (data: LibrosFormValues) => {
-    await onSubmit(data, currentData?.idLibro);
+    // Ensure idEditorial is a number before submitting
+    const dataToSubmit = {
+      ...data,
+      idEditorial: Number(data.idEditorial),
+    };
+    await onSubmit(dataToSubmit, currentData?.idLibro);
   };
 
   return (
@@ -70,7 +78,26 @@ function LibroForm({ currentData, initialValues, onSubmit, onCancel, isSubmittin
             <FormField
               control={form.control}
               name="idEditorial"
-              render={({ field }) => (<FormItem><FormLabel>ID Editorial</FormLabel><FormControl><Input type="number" placeholder="Ej: 1" {...field} onChange={e => field.onChange(e.target.value)} value={field.value ?? ''}/></FormControl><FormMessage /></FormItem>)}
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Editorial</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value?.toString()}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Seleccione una editorial" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {editoriales.map((editorial) => (
+                        <SelectItem key={editorial.idEditorial} value={editorial.idEditorial.toString()}>
+                          {editorial.nombre}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
           </CardContent>
           <CardFooter className="flex justify-end space-x-4">
@@ -99,10 +126,10 @@ function LibroList({ items, onEdit, onDelete }: LibroListProps) {
           <p className="text-muted-foreground">No hay libros registrados o que coincidan con la búsqueda.</p>
         ) : (
           <div className="overflow-x-auto">
-            <Table><TableHeader><TableRow><TableHead>ID Libro</TableHead><TableHead>Título</TableHead><TableHead>Año Publicación</TableHead><TableHead>ID Editorial</TableHead><TableHead className="text-right">Acciones</TableHead></TableRow></TableHeader>
+            <Table><TableHeader><TableRow><TableHead>ID Libro</TableHead><TableHead>Título</TableHead><TableHead>Año Publicación</TableHead><TableHead>Editorial</TableHead><TableHead className="text-right">Acciones</TableHead></TableRow></TableHeader>
               <TableBody>
                 {items.map((item) => (
-                  <TableRow key={item.idLibro}><TableCell>{item.idLibro}</TableCell><TableCell>{item.titulo}</TableCell><TableCell>{item.anioPublicacion}</TableCell><TableCell>{item.idEditorial}</TableCell><TableCell className="text-right space-x-2">
+                  <TableRow key={item.idLibro}><TableCell>{item.idLibro}</TableCell><TableCell>{item.titulo}</TableCell><TableCell>{item.anioPublicacion}</TableCell><TableCell>{item.editorial?.nombre ?? item.idEditorial ?? 'N/A'}</TableCell><TableCell className="text-right space-x-2">
                       <Button variant="outline" size="icon" onClick={() => onEdit(item)} aria-label="Editar"><Edit className="h-4 w-4" /></Button>
                       <Button variant="destructive" size="icon" onClick={() => onDelete(item.idLibro)} aria-label="Eliminar"><Trash2 className="h-4 w-4" /></Button>
                     </TableCell></TableRow>
@@ -120,6 +147,7 @@ function LibroList({ items, onEdit, onDelete }: LibroListProps) {
 export default function LibrosPage() {
   const [data, setData] = useState<LibrosModel[]>([]);
   const [filteredData, setFilteredData] = useState<LibrosModel[]>([]);
+  const [editoriales, setEditoriales] = useState<EditorialesModel[]>([]); // State for editoriales
   const [loading, setLoading] = useState<boolean>(true);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [currentItem, setCurrentItem] = useState<LibrosModel | null>(null);
@@ -149,11 +177,15 @@ export default function LibrosPage() {
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const result = await getAllLibros();
-      setData(result);
-      setFilteredData(result);
+      const [librosResult, editorialesResult] = await Promise.all([
+        getAllLibros(),
+        getAllEditoriales()
+      ]);
+      setData(librosResult);
+      setFilteredData(librosResult);
+      setEditoriales(editorialesResult);
     } catch (err) {
-      toast({ title: "Error", description: "Error al cargar libros.", variant: "destructive" });
+      toast({ title: "Error", description: "Error al cargar datos iniciales para libros.", variant: "destructive" });
       console.error("Error en loadData (Libros):", err);
     } finally {
       setLoading(false);
@@ -173,6 +205,7 @@ export default function LibrosPage() {
         item.idLibro.toString().includes(searchTerm) ||
         item.titulo.toLowerCase().includes(lowercasedFilter) ||
         item.anioPublicacion.toString().includes(lowercasedFilter) || 
+        (item.editorial?.nombre && item.editorial.nombre.toLowerCase().includes(lowercasedFilter)) ||
         item.idEditorial.toString().includes(searchTerm)
       );
     });
@@ -182,7 +215,13 @@ export default function LibrosPage() {
   const handleSubmit = async (formData: LibrosFormValues, id?: number) => {
     setIsSubmitting(true);
     try {
-      const coercedData = libroSchema.parse(formData);
+      // The form data for idEditorial is already a string from Select, coerce it.
+      const dataToSubmit = {
+        ...formData,
+        idEditorial: Number(formData.idEditorial) 
+      };
+      const coercedData = libroSchema.parse(dataToSubmit);
+      
       if (id) {
         await updateLibro(id, coercedData.titulo, coercedData.anioPublicacion, coercedData.idEditorial);
         toast({ title: "Éxito", description: "Libro actualizado." });
@@ -223,10 +262,10 @@ export default function LibrosPage() {
   const confirmDelete = (id: number) => { setItemToDelete(id); setShowDeleteConfirm(true); };
   const handleCancelForm = () => { setCurrentItem(null); setInitialFormValues(undefined); setShowForm(false); };
 
-  if (loading && !showForm && data.length === 0) return (
+  if (loading && !showForm && data.length === 0 && editoriales.length === 0) return (
     <div className="flex justify-center items-center min-h-[calc(100vh-8rem)]">
       <Loader2 className="h-16 w-16 animate-spin text-primary" />
-      <p className="ml-4 text-lg text-muted-foreground">Cargando libros...</p>
+      <p className="ml-4 text-lg text-muted-foreground">Cargando libros y editoriales...</p>
     </div>
   );
   
@@ -236,13 +275,13 @@ export default function LibrosPage() {
         <h1 className="text-3xl font-bold text-primary flex items-center"><BookOpen className="mr-3 h-8 w-8" />Gestión de Libros</h1>
         {!showForm && ( <Button onClick={handleAddNew} className="shadow-md"><PlusCircle className="mr-2 h-5 w-5" />Agregar Nuevo</Button> )}
       </div>
-      {showForm ? ( <LibroForm currentData={currentItem} initialValues={initialFormValues} onSubmit={handleSubmit} onCancel={handleCancelForm} isSubmitting={isSubmitting} /> ) 
+      {showForm ? ( <LibroForm currentData={currentItem} initialValues={initialFormValues} onSubmit={handleSubmit} onCancel={handleCancelForm} isSubmitting={isSubmitting} editoriales={editoriales} /> ) 
       : ( 
         <>
           <div className="flex items-center gap-2 mb-4">
             <Search className="h-5 w-5 text-muted-foreground" />
             <Input
-              placeholder="Buscar por ID, título, año o ID Editorial..."
+              placeholder="Buscar por ID, título, año o editorial..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="max-w-md"
