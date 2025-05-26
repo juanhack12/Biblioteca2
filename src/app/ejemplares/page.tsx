@@ -16,6 +16,8 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ejemplarSchema } from '@/lib/schemas';
 import { z } from 'zod'; 
+import axios from 'axios';
+import { API_BASE_URL } from '@/lib/api-config';
 
 // EjemplarForm Component
 interface EjemplarFormProps {
@@ -113,10 +115,10 @@ function EjemplarList({ items, onEdit, onDelete }: EjemplarListProps) {
           <p className="text-muted-foreground">No hay ejemplares registrados o que coincidan con la búsqueda.</p>
         ) : (
           <div className="overflow-x-auto">
-            <Table><TableHeader><TableRow><TableHead>ID Ejemplar</TableHead><TableHead>ID Libro</TableHead><TableHead>Ubicación</TableHead><TableHead className="text-right">Acciones</TableHead></TableRow></TableHeader>
+            <Table><TableHeader><TableRow><TableHead>ID Ejemplar</TableHead><TableHead>Título del Libro</TableHead><TableHead>ID Libro</TableHead><TableHead>Ubicación</TableHead><TableHead className="text-right">Acciones</TableHead></TableRow></TableHeader>
               <TableBody>
                 {items.map((item) => (
-                  <TableRow key={item.idEjemplar}><TableCell>{item.idEjemplar}</TableCell><TableCell>{item.idLibro || 'N/A'}</TableCell><TableCell>{item.ubicacion}</TableCell><TableCell className="text-right space-x-2">
+                  <TableRow key={item.idEjemplar}><TableCell>{item.idEjemplar}</TableCell><TableCell>{item.tituloLibro || 'N/A'}</TableCell><TableCell>{item.idLibro || 'N/A'}</TableCell><TableCell>{item.ubicacion}</TableCell><TableCell className="text-right space-x-2">
                       <Button variant="outline" size="icon" onClick={() => onEdit(item)} aria-label="Editar"><Edit className="h-4 w-4" /></Button>
                       <Button variant="destructive" size="icon" onClick={() => onDelete(item.idEjemplar)} aria-label="Eliminar"><Trash2 className="h-4 w-4" /></Button>
                     </TableCell></TableRow>
@@ -149,9 +151,15 @@ export default function EjemplaresPage() {
       const result = await getAllEjemplares();
       setData(result);
       setFilteredData(result);
-    } catch (err) {
-      toast({ title: "Error", description: "Error al cargar ejemplares.", variant: "destructive" });
-      console.error("Error en loadData (Ejemplares):", err);
+    } catch (err: any) {
+      console.error("Error al cargar ejemplares (loadData):", err);
+      let description = "Error al cargar ejemplares.";
+      if (axios.isAxiosError(err)) {
+        description = err.response?.data?.message || err.message || "Error de red o servidor.";
+      } else if (err instanceof Error) {
+        description = err.message;
+      }
+      toast({ title: "Error", description, variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -169,7 +177,8 @@ export default function EjemplaresPage() {
       return (
         item.idEjemplar.toString().includes(searchTerm) ||
         (item.idLibro && item.idLibro.toString().includes(searchTerm)) ||
-        item.ubicacion.toLowerCase().includes(lowercasedFilter)
+        (item.tituloLibro && item.tituloLibro.toLowerCase().includes(lowercasedFilter)) ||
+        (item.ubicacion && item.ubicacion.toLowerCase().includes(lowercasedFilter))
       );
     });
     setFilteredData(filtered);
@@ -179,21 +188,30 @@ export default function EjemplaresPage() {
     setIsSubmitting(true);
     try {
       const coercedData = ejemplarSchema.parse(formData);
+      const idLibroNum = Number(coercedData.idLibro);
       if (id) {
-        await updateEjemplar(id, coercedData.idLibro, coercedData.ubicacion);
+        await updateEjemplar(id, idLibroNum, coercedData.ubicacion);
         toast({ title: "Éxito", description: "Ejemplar actualizado." });
       } else {
-        await createEjemplar(coercedData.idLibro, coercedData.ubicacion);
+        await createEjemplar(idLibroNum, coercedData.ubicacion);
         toast({ title: "Éxito", description: "Ejemplar creado." });
       }
       setShowForm(false); setCurrentItem(null); loadData();
     } catch (err: any) {
+      console.error("Error al guardar ejemplar (handleSubmit):", err);
+      let description = "Error al guardar el ejemplar.";
       if (err instanceof z.ZodError) {
-        toast({ title: "Error de Validación", description: err.errors.map(e => e.message).join(', '), variant: "destructive"});
+        description = err.errors.map(e => e.message).join(', ');
+        toast({ title: "Error de Validación", description, variant: "destructive"});
+      } else if (axios.isAxiosError(err)) {
+        description = err.response?.data?.message || err.message || "Error de red o servidor.";
+        toast({ title: "Error", description, variant: "destructive" });
+      } else if (err instanceof Error) {
+        description = err.message;
+        toast({ title: "Error", description, variant: "destructive" });
       } else {
-        toast({ title: "Error", description: err.message || "Error al guardar el ejemplar.", variant: "destructive" });
+        toast({ title: "Error", description, variant: "destructive" });
       }
-      console.error("Error en handleSubmit (Ejemplares):", err);
     } finally {
       setIsSubmitting(false);
     }
@@ -206,9 +224,15 @@ export default function EjemplaresPage() {
       await deleteEjemplar(itemToDelete);
       toast({ title: "Éxito", description: "Ejemplar eliminado." });
       loadData();
-    } catch (err) {
-      toast({ title: "Error", description: "Error al eliminar ejemplar.", variant: "destructive" });
-      console.error("Error en handleDelete (Ejemplares):", err);
+    } catch (err: any) {
+      console.error("Error al eliminar ejemplar (handleDelete):", err);
+       let description = "Error al eliminar ejemplar.";
+       if (axios.isAxiosError(err)) {
+        description = err.response?.data?.message || err.message || "Error de red o servidor.";
+      } else if (err instanceof Error) {
+        description = err.message;
+      }
+      toast({ title: "Error", description, variant: "destructive" });
     } finally {
       setIsSubmitting(false); setShowDeleteConfirm(false); setItemToDelete(null);
     }
@@ -238,7 +262,7 @@ export default function EjemplaresPage() {
           <div className="flex items-center gap-2 mb-4">
             <Search className="h-5 w-5 text-muted-foreground" />
             <Input
-              placeholder="Buscar por ID Ejemplar, ID Libro o ubicación..."
+              placeholder="Buscar por ID, Título, ID Libro o ubicación..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="max-w-md"

@@ -7,7 +7,7 @@ export interface AutoresModel {
   idAutor: number;
   nombre: string;
   apellido: string;
-  fechaNacimiento?: DateOnlyString; // Puede ser opcional en el backend
+  fechaNacimiento?: DateOnlyString;
   nacionalidad: string;
 }
 
@@ -22,16 +22,28 @@ export interface PersonasModel {
   direccion: string;
 }
 
+// Para reflejar el BibliotecariosDTO del backend
+export interface BibliotecariosApiResponseDTO {
+  idBibliotecario: number;
+  idPersona?: number;
+  personas?: PersonasModel; // El objeto PersonasModel como viene del DTO (PascalCase Personas)
+  fechaContratacion?: DateOnlyString;
+  turno: string;
+  nombre?: string; // Nombre aplanado desde Personas
+  apellido?: string; // Apellido aplanado desde Personas
+  documentoIdentidad?: string; // Documento aplanado desde Personas
+}
+
+// Modelo del frontend para Bibliotecarios
 export interface BibliotecariosModel {
   idBibliotecario: number;
   idPersona?: number;
-  persona?: PersonasModel; // Para el objeto Personas anidado
   fechaContratacion?: DateOnlyString;
   turno: string;
-  // Propiedades aplanadas del DTO para facilitar el acceso
-  nombre?: string;
-  apellido?: string;
-  documentoIdentidad?: string;
+  nombre?: string; // Campo para UI, llenado desde DTO.Nombre o DTO.Personas.Nombre
+  apellido?: string; // Campo para UI
+  documentoIdentidad?: string; // Campo para UI
+  persona?: PersonasModel; // Opcional, si se quiere acceder al objeto completo
 }
 
 export interface EditorialesModel {
@@ -42,93 +54,113 @@ export interface EditorialesModel {
   sitioWeb: string;
 }
 
+// LibrosModel del backend NO anida Editorial, solo tiene IdEditorial
 export interface LibrosModel {
   idLibro: number;
   titulo: string;
-  anioPublicacion: string; // Mantenido como string según el backend
-  idEditorial: number; // El backend para LibrosModel solo envía IdEditorial
-  // editorial?: EditorialesModel; // Removido porque el backend LibrosModel no lo anida
-  isbn?: string;
-  summary?: string;
+  anioPublicacion: string; 
+  idEditorial: number; 
+  // No hay 'editorial?: EditorialesModel;' aquí porque el backend no lo envía así para las listas/gets.
+  // El formulario de creación/edición de libros cargará las editoriales por separado para un dropdown.
+  isbn?: string; // Estos pueden ser añadidos por el flujo de IA si se implementa completamente
+  summary?: string; // Estos pueden ser añadidos por el flujo de IA
 }
 
+// Para reflejar el EjemplaresDTO del backend
+export interface EjemplaresApiResponseDTO {
+  idEjemplar: number;
+  idLibro?: number;
+  libros?: LibrosModel; // El objeto LibrosModel como viene del DTO (PascalCase Libros)
+  ubicacion: string;
+  titulo?: string; // Titulo aplanado desde Libros.Titulo
+}
+
+// Modelo del frontend para Ejemplares
 export interface EjemplaresModel {
   idEjemplar: number;
   idLibro?: number;
-  libro?: LibrosModel; // Para el objeto Libros anidado
   ubicacion: string;
-  // Propiedad aplanada del DTO
-  titulo?: string; 
+  tituloLibro?: string; // Campo para UI, llenado desde DTO.Titulo o DTO.Libros.Titulo
+  libro?: LibrosModel; // Opcional
 }
 
-
-export interface LectoresModel {
+// Para reflejar el LectoresDTO del backend
+export interface LectoresApiResponseDTO {
   idLector: number;
   idPersona?: number;
-  persona?: PersonasModel; // Para el objeto Personas anidado
+  personas?: PersonasModel;
   fechaRegistro?: DateOnlyString;
   ocupacion: string;
-  // Propiedades aplanadas del DTO
   nombre?: string;
   apellido?: string;
   documentoIdentidad?: string;
 }
 
-export interface LibroAutoresModel {
-  idLibro: number;
-  // libro?: Pick<LibrosModel, 'idLibro' | 'titulo'>; // Backend no anida esto
-  idAutor: number;
-  // autor?: Pick<AutoresModel, 'idAutor' | 'nombre' | 'apellido'>; // Backend no anida esto
-  rol: string;
+// Modelo del frontend para Lectores
+export interface LectoresModel {
+  idLector: number;
+  idPersona?: number;
+  fechaRegistro?: DateOnlyString;
+  ocupacion: string;
+  nombre?: string;
+  apellido?: string;
+  documentoIdentidad?: string;
+  persona?: PersonasModel;
 }
 
+export interface LibroAutoresModel {
+  idLibro: number;
+  idAutor: number;
+  rol: string; // El backend usa 'rol' en minúscula
+}
+
+// Para reflejar el PrestamosDTO del backend
+export interface PrestamosApiResponseDTO {
+  idPrestamo: number;
+  idLector: number;
+  lectores?: LectoresApiResponseDTO; // DTO anidado
+  idBibliotecario: number;
+  bibliotecarios?: BibliotecariosApiResponseDTO; // DTO anidado
+  idEjemplar: number;
+  ejemplares?: EjemplaresModel; // El backend usa EjemplaresModel aquí, que a su vez tiene LibrosModel
+  fechaPrestamo: DateOnlyString;
+  fechaDevolucion: DateOnlyString;
+  nombreLector?: string;
+  nombreBibliotecario?: string;
+}
+
+// Modelo del frontend para Prestamos
 export interface PrestamosModel {
   idPrestamo: number;
   idLector: number;
-  lector?: LectoresModel; 
   idBibliotecario: number;
-  bibliotecario?: BibliotecariosModel;
   idEjemplar: number;
-  ejemplar?: EjemplaresModel; 
   fechaPrestamo: DateOnlyString;
   fechaDevolucion: DateOnlyString;
-  // Propiedades aplanadas del DTO
   nombreLector?: string;
   nombreBibliotecario?: string;
-  // Para mostrar el título del libro indirectamente
-  tituloLibroEjemplar?: string; 
+  tituloLibroEjemplar?: string;
+  // Opcionalmente, podríamos tener los objetos completos si decidimos mapearlos a fondo
+  lector?: LectoresModel;
+  bibliotecario?: BibliotecariosModel;
+  ejemplar?: EjemplaresModel;
 }
 
 export interface TarifasModel {
   idTarifa: number;
   idPrestamo: number;
-  // prestamo?: PrestamosModel; // Backend no anida esto
   diasRetraso: number;
-  montoTarifa: number;
+  montoTarifa: number; // Backend usa int, frontend lo tratará como number
 }
 
-// For react-hook-form, Omit 'id' for creation forms
-// y también los objetos anidados que son solo para visualización.
+// Form Values
 export type AutoresFormValues = Omit<AutoresModel, 'idAutor'>;
 export type BibliotecariosFormValues = Omit<BibliotecariosModel, 'idBibliotecario' | 'persona' | 'nombre' | 'apellido' | 'documentoIdentidad'>;
 export type EditorialesFormValues = Omit<EditorialesModel, 'idEditorial'>;
-export type EjemplaresFormValues = Omit<EjemplaresModel, 'idEjemplar' | 'libro' | 'titulo'>;
+export type EjemplaresFormValues = Omit<EjemplaresModel, 'idEjemplar' | 'libro' | 'tituloLibro'>;
 export type LectoresFormValues = Omit<LectoresModel, 'idLector' | 'persona' | 'nombre' | 'apellido' | 'documentoIdentidad'>;
-export type LibroAutoresFormValues = LibroAutoresModel; // PK es composite, todos los campos son para el form
+export type LibroAutoresFormValues = LibroAutoresModel;
 export type LibrosFormValues = Omit<LibrosModel, 'idLibro' | 'isbn' | 'summary'>;
 export type PersonasFormValues = Omit<PersonasModel, 'idPersona'>;
 export type PrestamosFormValues = Omit<PrestamosModel, 'idPrestamo' | 'lector' | 'bibliotecario' | 'ejemplar' | 'nombreLector' | 'nombreBibliotecario' | 'tituloLibroEjemplar'>;
 export type TarifasFormValues = Omit<TarifasModel, 'idTarifa'>;
-
-// Tipos para los DTOs que vienen del backend, para usar en los servicios antes de mapear
-// Esto ayuda a ser explícitos sobre la estructura de la respuesta de la API.
-export interface BibliotecariosApiResponseDTO {
-  idBibliotecario: number;
-  idPersona?: number;
-  personas?: PersonasModel; // El objeto PersonasModel tal como viene del DTO (PascalCase Personas)
-  fechaContratacion?: DateOnlyString;
-  turno: string;
-  nombre?: string; // Nombre aplanado
-  apellido?: string; // Apellido aplanado
-  documentoIdentidad?: string; // Documento aplanado
-}

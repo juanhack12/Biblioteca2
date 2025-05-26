@@ -21,6 +21,8 @@ import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { z } from 'zod';
+import axios from 'axios';
+import { API_BASE_URL } from '@/lib/api-config';
 
 // LectorForm Component
 interface LectorFormProps {
@@ -119,7 +121,7 @@ function LectorForm({ currentData, onSubmit, onCancel, isSubmitting }: LectorFor
                 <FormItem>
                   <FormLabel>Ocupación</FormLabel>
                   <FormControl>
-                    <Input placeholder="Ej: Estudiante" {...field} />
+                    <Input placeholder="Ej: Estudiante" {...field} value={field.value ?? ''}/>
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -146,7 +148,7 @@ interface LectorListProps {
 function LectorList({ items, onEdit, onDelete }: LectorListProps) {
   const formatDate = (dateString?: string) => {
     if (!dateString) return 'N/A';
-    const date = new Date(dateString + 'T00:00:00');
+    const date = new Date(dateString.includes('T') ? dateString : dateString + 'T00:00:00');
     return format(date, 'PPP', { locale: es });
   };
   return (
@@ -157,10 +159,10 @@ function LectorList({ items, onEdit, onDelete }: LectorListProps) {
           <p className="text-muted-foreground">No hay lectores registrados o que coincidan con la búsqueda.</p>
         ) : (
           <div className="overflow-x-auto">
-            <Table><TableHeader><TableRow><TableHead>ID Lector</TableHead><TableHead>ID Persona</TableHead><TableHead>Fecha Registro</TableHead><TableHead>Ocupación</TableHead><TableHead className="text-right">Acciones</TableHead></TableRow></TableHeader>
+            <Table><TableHeader><TableRow><TableHead>ID Lector</TableHead><TableHead>Nombre Completo</TableHead><TableHead>Documento</TableHead><TableHead>Fecha Registro</TableHead><TableHead>Ocupación</TableHead><TableHead className="text-right">Acciones</TableHead></TableRow></TableHeader>
               <TableBody>
                 {items.map((item) => (
-                  <TableRow key={item.idLector}><TableCell>{item.idLector}</TableCell><TableCell>{item.idPersona || 'N/A'}</TableCell><TableCell>{formatDate(item.fechaRegistro)}</TableCell><TableCell>{item.ocupacion}</TableCell><TableCell className="text-right space-x-2">
+                  <TableRow key={item.idLector}><TableCell>{item.idLector}</TableCell><TableCell>{item.nombre && item.apellido ? `${item.nombre} ${item.apellido}` : (item.idPersona || 'N/A')}</TableCell><TableCell>{item.documentoIdentidad || 'N/A'}</TableCell><TableCell>{formatDate(item.fechaRegistro)}</TableCell><TableCell>{item.ocupacion}</TableCell><TableCell className="text-right space-x-2">
                       <Button variant="outline" size="icon" onClick={() => onEdit(item)} aria-label="Editar"><Edit className="h-4 w-4" /></Button>
                       <Button variant="destructive" size="icon" onClick={() => onDelete(item.idLector)} aria-label="Eliminar"><Trash2 className="h-4 w-4" /></Button>
                     </TableCell></TableRow>
@@ -193,8 +195,15 @@ export default function LectoresPage() {
       const result = await getAllLectores();
       setData(result);
       setFilteredData(result);
-    } catch (err) {
-      toast({ title: "Error", description: "Error al cargar lectores.", variant: "destructive" });
+    } catch (err: any) {
+      console.error("Error al cargar lectores (loadData):", err);
+      let description = "Error al cargar lectores.";
+      if (axios.isAxiosError(err)) {
+        description = err.response?.data?.message || err.message || "Error de red o servidor.";
+      } else if (err instanceof Error) {
+        description = err.message;
+      }
+      toast({ title: "Error", description, variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -209,11 +218,14 @@ export default function LectoresPage() {
     }
     const lowercasedFilter = searchTerm.toLowerCase();
     const filtered = data.filter(item => {
+      const nombreCompleto = item.nombre && item.apellido ? `${item.nombre} ${item.apellido}`.toLowerCase() : '';
       return (
         item.idLector.toString().includes(searchTerm) ||
         (item.idPersona && item.idPersona.toString().includes(searchTerm)) ||
+        nombreCompleto.includes(lowercasedFilter) ||
+        (item.documentoIdentidad && item.documentoIdentidad.toLowerCase().includes(lowercasedFilter)) ||
         (item.fechaRegistro && item.fechaRegistro.toLowerCase().includes(lowercasedFilter)) ||
-        item.ocupacion.toLowerCase().includes(lowercasedFilter)
+        (item.ocupacion && item.ocupacion.toLowerCase().includes(lowercasedFilter))
       );
     });
     setFilteredData(filtered);
@@ -223,21 +235,31 @@ export default function LectoresPage() {
     setIsSubmitting(true);
     try {
       const coercedData = lectorSchema.parse(formData);
+      const idPersonaNum = Number(coercedData.idPersona);
       const fechaRegistroToSubmit = coercedData.fechaRegistro || undefined;
 
       if (id) {
-        await updateLector(id, coercedData.idPersona, fechaRegistroToSubmit, coercedData.ocupacion);
+        await updateLector(id, idPersonaNum, fechaRegistroToSubmit, coercedData.ocupacion);
         toast({ title: "Éxito", description: "Lector actualizado." });
       } else {
-        await createLector(coercedData.idPersona, fechaRegistroToSubmit, coercedData.ocupacion);
+        await createLector(idPersonaNum, fechaRegistroToSubmit, coercedData.ocupacion);
         toast({ title: "Éxito", description: "Lector creado." });
       }
       setShowForm(false); setCurrentItem(null); loadData();
     } catch (err: any) {
+      console.error("Error al guardar lector (handleSubmit):", err);
+      let description = "Error al guardar el lector.";
       if (err instanceof z.ZodError) {
-        toast({ title: "Error de Validación", description: err.errors.map(e => e.message).join(', '), variant: "destructive"});
+        description = err.errors.map(e => e.message).join(', ');
+        toast({ title: "Error de Validación", description, variant: "destructive"});
+      } else if (axios.isAxiosError(err)) {
+        description = err.response?.data?.message || err.message || "Error de red o servidor.";
+        toast({ title: "Error", description, variant: "destructive" });
+      } else if (err instanceof Error) {
+        description = err.message;
+        toast({ title: "Error", description, variant: "destructive" });
       } else {
-        toast({ title: "Error", description: err.message || "Error al guardar el lector.", variant: "destructive" });
+         toast({ title: "Error", description, variant: "destructive" });
       }
     } finally {
       setIsSubmitting(false);
@@ -251,8 +273,15 @@ export default function LectoresPage() {
       await deleteLector(itemToDelete);
       toast({ title: "Éxito", description: "Lector eliminado." });
       loadData();
-    } catch (err) {
-      toast({ title: "Error", description: "Error al eliminar lector.", variant: "destructive" });
+    } catch (err: any) {
+      console.error("Error al eliminar lector (handleDelete):", err);
+      let description = "Error al eliminar lector.";
+      if (axios.isAxiosError(err)) {
+        description = err.response?.data?.message || err.message || "Error de red o servidor.";
+      } else if (err instanceof Error) {
+        description = err.message;
+      }
+      toast({ title: "Error", description, variant: "destructive" });
     } finally {
       setIsSubmitting(false); setShowDeleteConfirm(false); setItemToDelete(null);
     }
@@ -282,7 +311,7 @@ export default function LectoresPage() {
           <div className="flex items-center gap-2 mb-4">
             <Search className="h-5 w-5 text-muted-foreground" />
             <Input
-              placeholder="Buscar por ID Lector, ID Persona, fecha u ocupación..."
+              placeholder="Buscar por ID, Nombre, Documento, fecha u ocupación..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="max-w-md"

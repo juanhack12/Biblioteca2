@@ -75,7 +75,7 @@ const recentBooksPlaceholder = [
   { id: 1, title: "El Jardín de las Mariposas", author: "Dot Hutchison", imageUrl: "/images/mpsa.jpg" },
   { id: 2, title: "Fuego y Sangre", author: "George R.R. Martin", imageUrl: "/images/fys.jpg" },
   { id: 3, title: "La Sombra del Viento", author: "Carlos Ruiz Zafón", imageUrl: "/images/lsviento.jpg" },
-  { id: 4, title: "Educated", author: "Tara Westover", imageUrl: "/images/books/libro4.jpeg" },
+  { id: 4, title: "Educated", author: "Tara Westover", imageUrl: "/images/educated.jpg" },
 ];
 
 export default function HomePage() {

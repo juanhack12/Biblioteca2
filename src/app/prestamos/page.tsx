@@ -21,6 +21,8 @@ import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { z } from 'zod';
+import axios from 'axios';
+import { API_BASE_URL } from '@/lib/api-config';
 
 // PrestamoForm Component
 interface PrestamoFormProps {
@@ -100,7 +102,7 @@ interface PrestamoListProps {
 function PrestamoList({ items, onEdit, onDelete }: PrestamoListProps) {
   const formatDate = (dateString?: string) => {
     if (!dateString) return 'N/A';
-    const date = new Date(dateString + 'T00:00:00');
+    const date = new Date(dateString.includes('T') ? dateString : dateString + 'T00:00:00');
     return format(date, 'PPP', { locale: es });
   };
   return (
@@ -111,10 +113,10 @@ function PrestamoList({ items, onEdit, onDelete }: PrestamoListProps) {
           <p className="text-muted-foreground">No hay préstamos registrados o que coincidan con la búsqueda.</p>
         ) : (
           <div className="overflow-x-auto">
-            <Table><TableHeader><TableRow><TableHead>ID</TableHead><TableHead>ID Lector</TableHead><TableHead>ID Bibliotecario</TableHead><TableHead>ID Ejemplar</TableHead><TableHead>F. Préstamo</TableHead><TableHead>F. Devolución</TableHead><TableHead className="text-right">Acciones</TableHead></TableRow></TableHeader>
+            <Table><TableHeader><TableRow><TableHead>ID</TableHead><TableHead>Lector</TableHead><TableHead>Bibliotecario</TableHead><TableHead>Título Libro</TableHead><TableHead>ID Ejemplar</TableHead><TableHead>F. Préstamo</TableHead><TableHead>F. Devolución</TableHead><TableHead className="text-right">Acciones</TableHead></TableRow></TableHeader>
               <TableBody>
                 {items.map((item) => (
-                  <TableRow key={item.idPrestamo}><TableCell>{item.idPrestamo}</TableCell><TableCell>{item.idLector}</TableCell><TableCell>{item.idBibliotecario}</TableCell><TableCell>{item.idEjemplar}</TableCell><TableCell>{formatDate(item.fechaPrestamo)}</TableCell><TableCell>{formatDate(item.fechaDevolucion)}</TableCell><TableCell className="text-right space-x-2">
+                  <TableRow key={item.idPrestamo}><TableCell>{item.idPrestamo}</TableCell><TableCell>{item.nombreLector || `ID: ${item.idLector}`}</TableCell><TableCell>{item.nombreBibliotecario || `ID: ${item.idBibliotecario}`}</TableCell><TableCell>{item.tituloLibroEjemplar || 'N/A'}</TableCell><TableCell>{item.idEjemplar}</TableCell><TableCell>{formatDate(item.fechaPrestamo)}</TableCell><TableCell>{formatDate(item.fechaDevolucion)}</TableCell><TableCell className="text-right space-x-2">
                       <Button variant="outline" size="icon" onClick={() => onEdit(item)} aria-label="Editar"><Edit className="h-4 w-4" /></Button>
                       <Button variant="destructive" size="icon" onClick={() => onDelete(item.idPrestamo)} aria-label="Eliminar"><Trash2 className="h-4 w-4" /></Button>
                     </TableCell></TableRow>
@@ -147,9 +149,15 @@ export default function PrestamosPage() {
       const result = await getAllPrestamos();
       setData(result);
       setFilteredData(result);
-    } catch (err) {
-      toast({ title: "Error", description: "Error al cargar préstamos.", variant: "destructive" });
-      console.error("Error en loadData (Prestamos):", err);
+    } catch (err: any) {
+      console.error("Error al cargar préstamos (loadData):", err);
+      let description = "Error al cargar préstamos.";
+      if (axios.isAxiosError(err)) {
+        description = err.response?.data?.message || err.message || "Error de red o servidor.";
+      } else if (err instanceof Error) {
+        description = err.message;
+      }
+      toast({ title: "Error", description, variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -166,8 +174,11 @@ export default function PrestamosPage() {
     const filtered = data.filter(item => {
       return (
         item.idPrestamo.toString().includes(searchTerm) ||
+        (item.nombreLector && item.nombreLector.toLowerCase().includes(lowercasedFilter)) ||
         item.idLector.toString().includes(searchTerm) ||
+        (item.nombreBibliotecario && item.nombreBibliotecario.toLowerCase().includes(lowercasedFilter)) ||
         item.idBibliotecario.toString().includes(searchTerm) ||
+        (item.tituloLibroEjemplar && item.tituloLibroEjemplar.toLowerCase().includes(lowercasedFilter)) ||
         item.idEjemplar.toString().includes(searchTerm) ||
         (item.fechaPrestamo && item.fechaPrestamo.toLowerCase().includes(lowercasedFilter)) ||
         (item.fechaDevolucion && item.fechaDevolucion.toLowerCase().includes(lowercasedFilter))
@@ -180,21 +191,38 @@ export default function PrestamosPage() {
     setIsSubmitting(true);
     try {
       const coercedData = prestamoSchema.parse(formData);
+      const idLectorNum = Number(coercedData.idLector);
+      const idBibliotecarioNum = Number(coercedData.idBibliotecario);
+      const idEjemplarNum = Number(coercedData.idEjemplar);
+
       if (id) {
-        await updatePrestamo(id, coercedData.idLector, coercedData.idBibliotecario, coercedData.idEjemplar, coercedData.fechaPrestamo, coercedData.fechaDevolucion);
+        await updatePrestamo(id, idLectorNum, idBibliotecarioNum, idEjemplarNum, coercedData.fechaPrestamo, coercedData.fechaDevolucion);
         toast({ title: "Éxito", description: "Préstamo actualizado." });
       } else {
-        await createPrestamo(coercedData.idLector, coercedData.idBibliotecario, coercedData.idEjemplar, coercedData.fechaPrestamo, coercedData.fechaDevolucion);
+        await createPrestamo(idLectorNum, idBibliotecarioNum, idEjemplarNum, coercedData.fechaPrestamo, coercedData.fechaDevolucion);
         toast({ title: "Éxito", description: "Préstamo creado." });
       }
       setShowForm(false); setCurrentItem(null); loadData();
     } catch (err: any) {
-       if (err instanceof z.ZodError) {
-        toast({ title: "Error de Validación", description: err.errors.map(e => e.message).join(', '), variant: "destructive"});
+       console.error("Error al guardar préstamo (handleSubmit):", err);
+      let description = "Error al guardar el préstamo.";
+      if (err instanceof z.ZodError) {
+        description = err.errors.map(e => e.message).join(', ');
+        toast({ title: "Error de Validación", description, variant: "destructive"});
+      } else if (axios.isAxiosError(err)) {
+        console.error("Full Axios error object:", err);
+        console.error("error.message:", err.message);
+        console.error("error.code:", err.code);
+        console.error("error.response?.status:", err.response?.status);
+        console.error("error.response?.data:", err.response?.data);
+        description = err.response?.data?.message || err.message || "Error de red o servidor.";
+        toast({ title: "Error", description, variant: "destructive" });
+      } else if (err instanceof Error) {
+        description = err.message;
+        toast({ title: "Error", description, variant: "destructive" });
       } else {
-        toast({ title: "Error", description: err.message || "Error al guardar el préstamo.", variant: "destructive" });
+         toast({ title: "Error", description, variant: "destructive" });
       }
-      console.error("Error en handleSubmit (Prestamos):", err);
     } finally {
       setIsSubmitting(false);
     }
@@ -207,9 +235,15 @@ export default function PrestamosPage() {
       await deletePrestamo(itemToDelete);
       toast({ title: "Éxito", description: "Préstamo eliminado." });
       loadData();
-    } catch (err) {
-      toast({ title: "Error", description: "Error al eliminar préstamo.", variant: "destructive" });
-      console.error("Error en handleDelete (Prestamos):", err);
+    } catch (err: any) {
+      console.error("Error al eliminar préstamo (handleDelete):", err);
+      let description = "Error al eliminar préstamo.";
+      if (axios.isAxiosError(err)) {
+        description = err.response?.data?.message || err.message || "Error de red o servidor.";
+      } else if (err instanceof Error) {
+        description = err.message;
+      }
+      toast({ title: "Error", description, variant: "destructive" });
     } finally {
       setIsSubmitting(false); setShowDeleteConfirm(false); setItemToDelete(null);
     }
@@ -239,7 +273,7 @@ export default function PrestamosPage() {
           <div className="flex items-center gap-2 mb-4">
             <Search className="h-5 w-5 text-muted-foreground" />
             <Input
-              placeholder="Buscar por IDs (Lector, Bibliotecario, Ejemplar, Préstamo) o fechas..."
+              placeholder="Buscar por ID, Lector, Bibliotecario, Libro, o fechas..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="max-w-md"

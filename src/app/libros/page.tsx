@@ -3,12 +3,12 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import type { LibrosModel, LibrosFormValues, EditorialesModel } from '@/lib/types'; // Added EditorialesModel
+import type { LibrosModel, LibrosFormValues, EditorialesModel } from '@/lib/types';
 import { getAllLibros, createLibro, updateLibro, deleteLibro } from '@/lib/services/libros';
-import { getAllEditoriales } from '@/lib/services/editoriales'; // To fetch editoriales for dropdown
+import { getAllEditoriales } from '@/lib/services/editoriales'; 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'; // Added Select
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { PlusCircle, Loader2, BookOpen, Edit, Trash2, Search } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
@@ -19,6 +19,8 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { libroSchema } from '@/lib/schemas';
 import { z } from 'zod';
+import axios from 'axios';
+import { API_BASE_URL } from '@/lib/api-config';
 
 // LibroForm Component
 interface LibroFormProps {
@@ -27,7 +29,7 @@ interface LibroFormProps {
   onSubmit: (data: LibrosFormValues, id?: number) => Promise<void>;
   onCancel: () => void;
   isSubmitting: boolean;
-  editoriales: EditorialesModel[]; // Add editoriales prop
+  editoriales: EditorialesModel[]; 
 }
 
 function LibroForm({ currentData, initialValues, onSubmit, onCancel, isSubmitting, editoriales }: LibroFormProps) {
@@ -41,6 +43,11 @@ function LibroForm({ currentData, initialValues, onSubmit, onCancel, isSubmittin
   });
 
   useEffect(() => {
+    const defaultVals = {
+      titulo: '',
+      anioPublicacion: '',
+      idEditorial: '',
+    };
     if (initialValues && Object.keys(initialValues).length > 0) {
        form.reset({
         titulo: initialValues.titulo || '',
@@ -54,17 +61,12 @@ function LibroForm({ currentData, initialValues, onSubmit, onCancel, isSubmittin
         idEditorial: currentData.idEditorial.toString(),
       });
     } else {
-      form.reset({ titulo: '', anioPublicacion: '', idEditorial: '' });
+      form.reset(defaultVals);
     }
   }, [currentData, initialValues, form]);
 
   const handleSubmitForm = async (data: LibrosFormValues) => {
-    // Ensure idEditorial is a number before submitting
-    const dataToSubmit = {
-      ...data,
-      idEditorial: Number(data.idEditorial),
-    };
-    await onSubmit(dataToSubmit, currentData?.idLibro);
+    await onSubmit(data, currentData?.idLibro);
   };
 
   return (
@@ -81,7 +83,7 @@ function LibroForm({ currentData, initialValues, onSubmit, onCancel, isSubmittin
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Editorial</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value?.toString()}>
+                  <Select onValueChange={field.onChange} value={field.value?.toString() ?? ''} defaultValue={field.value?.toString() ?? ''}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Seleccione una editorial" />
@@ -115,6 +117,7 @@ interface LibroListProps {
   items: LibrosModel[];
   onEdit: (item: LibrosModel) => void;
   onDelete: (id: number) => void;
+  // No necesitamos pasar editoriales aquí si el backend no anida la info para la lista
 }
 
 function LibroList({ items, onEdit, onDelete }: LibroListProps) {
@@ -126,10 +129,10 @@ function LibroList({ items, onEdit, onDelete }: LibroListProps) {
           <p className="text-muted-foreground">No hay libros registrados o que coincidan con la búsqueda.</p>
         ) : (
           <div className="overflow-x-auto">
-            <Table><TableHeader><TableRow><TableHead>ID Libro</TableHead><TableHead>Título</TableHead><TableHead>Año Publicación</TableHead><TableHead>Editorial</TableHead><TableHead className="text-right">Acciones</TableHead></TableRow></TableHeader>
+            <Table><TableHeader><TableRow><TableHead>ID Libro</TableHead><TableHead>Título</TableHead><TableHead>Año Publicación</TableHead><TableHead>ID Editorial</TableHead><TableHead className="text-right">Acciones</TableHead></TableRow></TableHeader>
               <TableBody>
                 {items.map((item) => (
-                  <TableRow key={item.idLibro}><TableCell>{item.idLibro}</TableCell><TableCell>{item.titulo}</TableCell><TableCell>{item.anioPublicacion}</TableCell><TableCell>{item.editorial?.nombre ?? item.idEditorial ?? 'N/A'}</TableCell><TableCell className="text-right space-x-2">
+                  <TableRow key={item.idLibro}><TableCell>{item.idLibro}</TableCell><TableCell>{item.titulo}</TableCell><TableCell>{item.anioPublicacion}</TableCell><TableCell>{item.idEditorial ?? 'N/A'}</TableCell><TableCell className="text-right space-x-2">
                       <Button variant="outline" size="icon" onClick={() => onEdit(item)} aria-label="Editar"><Edit className="h-4 w-4" /></Button>
                       <Button variant="destructive" size="icon" onClick={() => onDelete(item.idLibro)} aria-label="Eliminar"><Trash2 className="h-4 w-4" /></Button>
                     </TableCell></TableRow>
@@ -147,7 +150,7 @@ function LibroList({ items, onEdit, onDelete }: LibroListProps) {
 export default function LibrosPage() {
   const [data, setData] = useState<LibrosModel[]>([]);
   const [filteredData, setFilteredData] = useState<LibrosModel[]>([]);
-  const [editoriales, setEditoriales] = useState<EditorialesModel[]>([]); // State for editoriales
+  const [editoriales, setEditoriales] = useState<EditorialesModel[]>([]); 
   const [loading, setLoading] = useState<boolean>(true);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [currentItem, setCurrentItem] = useState<LibrosModel | null>(null);
@@ -179,14 +182,20 @@ export default function LibrosPage() {
     try {
       const [librosResult, editorialesResult] = await Promise.all([
         getAllLibros(),
-        getAllEditoriales()
+        getAllEditoriales() // Para el dropdown en el formulario
       ]);
       setData(librosResult);
       setFilteredData(librosResult);
       setEditoriales(editorialesResult);
-    } catch (err) {
-      toast({ title: "Error", description: "Error al cargar datos iniciales para libros.", variant: "destructive" });
-      console.error("Error en loadData (Libros):", err);
+    } catch (err: any) {
+      console.error("Error al cargar datos para Libros (loadData):", err);
+      let description = "Error al cargar datos iniciales para libros.";
+      if (axios.isAxiosError(err)) {
+        description = err.response?.data?.message || err.message || "Error de red o servidor.";
+      } else if (err instanceof Error) {
+        description = err.message;
+      }
+      toast({ title: "Error", description, variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -203,9 +212,8 @@ export default function LibrosPage() {
     const filtered = data.filter(item => {
       return (
         item.idLibro.toString().includes(searchTerm) ||
-        item.titulo.toLowerCase().includes(lowercasedFilter) ||
-        item.anioPublicacion.toString().includes(lowercasedFilter) || 
-        (item.editorial?.nombre && item.editorial.nombre.toLowerCase().includes(lowercasedFilter)) ||
+        (item.titulo && item.titulo.toLowerCase().includes(lowercasedFilter)) ||
+        (item.anioPublicacion && item.anioPublicacion.toString().includes(lowercasedFilter)) || 
         item.idEditorial.toString().includes(searchTerm)
       );
     });
@@ -215,28 +223,31 @@ export default function LibrosPage() {
   const handleSubmit = async (formData: LibrosFormValues, id?: number) => {
     setIsSubmitting(true);
     try {
-      // The form data for idEditorial is already a string from Select, coerce it.
-      const dataToSubmit = {
-        ...formData,
-        idEditorial: Number(formData.idEditorial) 
-      };
-      const coercedData = libroSchema.parse(dataToSubmit);
+      const coercedData = libroSchema.parse(formData);
       
       if (id) {
-        await updateLibro(id, coercedData.titulo, coercedData.anioPublicacion, coercedData.idEditorial);
+        await updateLibro(id, coercedData.titulo, coercedData.anioPublicacion, Number(coercedData.idEditorial));
         toast({ title: "Éxito", description: "Libro actualizado." });
       } else {
-        await createLibro(coercedData.titulo, coercedData.anioPublicacion, coercedData.idEditorial);
+        await createLibro(coercedData.titulo, coercedData.anioPublicacion, Number(coercedData.idEditorial));
         toast({ title: "Éxito", description: "Libro creado." });
       }
       setShowForm(false); setCurrentItem(null); setInitialFormValues(undefined); loadData();
     } catch (err: any) {
+      console.error("Error al guardar libro (handleSubmit):", err);
+      let description = "Error al guardar el libro.";
       if (err instanceof z.ZodError) {
-        toast({ title: "Error de Validación", description: err.errors.map(e => e.message).join(', '), variant: "destructive"});
+        description = err.errors.map(e => e.message).join(', ');
+        toast({ title: "Error de Validación", description, variant: "destructive"});
+      } else if (axios.isAxiosError(err)) {
+        description = err.response?.data?.message || err.message || "Error de red o servidor.";
+        toast({ title: "Error", description, variant: "destructive" });
+      } else if (err instanceof Error) {
+        description = err.message;
+        toast({ title: "Error", description, variant: "destructive" });
       } else {
-        toast({ title: "Error", description: err.message || "Error al guardar el libro.", variant: "destructive" });
+         toast({ title: "Error", description, variant: "destructive" });
       }
-      console.error("Error en handleSubmit (Libros):", err);
     } finally {
       setIsSubmitting(false);
     }
@@ -249,9 +260,15 @@ export default function LibrosPage() {
       await deleteLibro(itemToDelete);
       toast({ title: "Éxito", description: "Libro eliminado." });
       loadData();
-    } catch (err) {
-      toast({ title: "Error", description: "Error al eliminar libro.", variant: "destructive" });
-      console.error("Error en handleDelete (Libros):", err);
+    } catch (err: any) {
+      console.error("Error al eliminar libro (handleDelete):", err);
+       let description = "Error al eliminar libro.";
+       if (axios.isAxiosError(err)) {
+        description = err.response?.data?.message || err.message || "Error de red o servidor.";
+      } else if (err instanceof Error) {
+        description = err.message;
+      }
+      toast({ title: "Error", description, variant: "destructive" });
     } finally {
       setIsSubmitting(false); setShowDeleteConfirm(false); setItemToDelete(null);
     }
@@ -281,7 +298,7 @@ export default function LibrosPage() {
           <div className="flex items-center gap-2 mb-4">
             <Search className="h-5 w-5 text-muted-foreground" />
             <Input
-              placeholder="Buscar por ID, título, año o editorial..."
+              placeholder="Buscar por ID, título, año o ID editorial..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="max-w-md"

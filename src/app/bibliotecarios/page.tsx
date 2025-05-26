@@ -21,6 +21,8 @@ import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { z } from 'zod';
+import axios from 'axios';
+import { API_BASE_URL } from '@/lib/api-config';
 
 // BibliotecarioForm Component
 interface BibliotecarioFormProps {
@@ -144,7 +146,6 @@ interface BibliotecarioListProps {
 function BibliotecarioList({ items, onEdit, onDelete }: BibliotecarioListProps) {
    const formatDate = (dateString?: string) => {
     if (!dateString) return 'N/A';
-    // Asegurarse de que la fecha se parsea correctamente añadiendo la hora si es solo fecha
     const date = new Date(dateString.includes('T') ? dateString : dateString + 'T00:00:00');
     return format(date, 'PPP', { locale: es });
   };
@@ -194,8 +195,13 @@ export default function BibliotecariosPage() {
       setData(result);
       setFilteredData(result);
     } catch (err: any) {
-      console.error("Full Axios error object (loadData Bibliotecarios):", err);
-      const description = err.response?.data?.message || err.message || "Error al cargar bibliotecarios.";
+      console.error("Error al cargar bibliotecarios (loadData):", err);
+      let description = "Error al cargar bibliotecarios.";
+      if (axios.isAxiosError(err)) {
+        description = err.response?.data?.message || err.message || "Error de red o servidor.";
+      } else if (err instanceof Error) {
+        description = err.message;
+      }
       toast({ title: "Error de Carga", description, variant: "destructive" });
     } finally {
       setLoading(false);
@@ -220,7 +226,7 @@ export default function BibliotecariosPage() {
         nombreCompleto.includes(lowercasedFilter) ||
         (item.documentoIdentidad && item.documentoIdentidad.toLowerCase().includes(lowercasedFilter)) ||
         (item.fechaContratacion && item.fechaContratacion.toLowerCase().includes(lowercasedFilter)) ||
-        item.turno.toLowerCase().includes(lowercasedFilter)
+        (item.turno && item.turno.toLowerCase().includes(lowercasedFilter))
       );
     });
     setFilteredData(filtered);
@@ -229,9 +235,8 @@ export default function BibliotecariosPage() {
   const handleSubmit = async (formData: BibliotecariosFormValues, id?: number) => {
     setIsSubmitting(true);
     try {
-      // idPersona es string del form, Zod lo coercerá a number
       const coercedData = bibliotecarioSchema.parse(formData); 
-      const idPersonaNum = Number(coercedData.idPersona); // Ya validado por Zod como coercible a número
+      const idPersonaNum = Number(coercedData.idPersona);
       const fechaContratacionToSubmit = coercedData.fechaContratacion || undefined;
 
       if (id) {
@@ -245,12 +250,19 @@ export default function BibliotecariosPage() {
       setCurrentItem(null);
       loadData();
     } catch (err: any) {
+      console.error("Error al guardar bibliotecario (handleSubmit):", err);
+      let description = "Error al guardar el bibliotecario.";
       if (err instanceof z.ZodError) {
-        toast({ title: "Error de Validación", description: err.errors.map(e => e.message).join(', '), variant: "destructive"});
-      } else {
-        console.error("Error en handleSubmit (Bibliotecarios):", err);
-        const description = err.response?.data?.message || err.message || "Error al guardar el bibliotecario.";
+        description = err.errors.map(e => e.message).join(', ');
+        toast({ title: "Error de Validación", description, variant: "destructive"});
+      } else if (axios.isAxiosError(err)) {
+        description = err.response?.data?.message || err.message || "Error de red o servidor.";
         toast({ title: "Error", description, variant: "destructive" });
+      } else if (err instanceof Error) {
+        description = err.message;
+        toast({ title: "Error", description, variant: "destructive" });
+      } else {
+         toast({ title: "Error", description, variant: "destructive" });
       }
     } finally {
       setIsSubmitting(false);
@@ -265,8 +277,13 @@ export default function BibliotecariosPage() {
       toast({ title: "Éxito", description: "Bibliotecario eliminado." });
       loadData();
     } catch (err: any) {
-      console.error("Error en handleDelete (Bibliotecarios):", err);
-      const description = err.response?.data?.message || err.message || "Error al eliminar bibliotecario.";
+      console.error("Error al eliminar bibliotecario (handleDelete):", err);
+      let description = "Error al eliminar bibliotecario.";
+       if (axios.isAxiosError(err)) {
+        description = err.response?.data?.message || err.message || "Error de red o servidor.";
+      } else if (err instanceof Error) {
+        description = err.message;
+      }
       toast({ title: "Error", description, variant: "destructive" });
     } finally {
       setIsSubmitting(false);
