@@ -72,10 +72,10 @@ function StatCard({ title, value, icon, loading, description }: StatCardProps) {
 }
 
 const recentBooksPlaceholder = [
-  { id: 1, title: "El Jardín de las Mariposas", author: "Dot Hutchison", imageUrl: "https://placehold.co/300x450/FF6347/FFFFFF.png?text=Libro+1", dataAiHint: "thriller book" },
-  { id: 2, title: "Fuego y Sangre", author: "George R.R. Martin", imageUrl: "https://placehold.co/300x450/4682B4/000000.png?text=Libro+2", dataAiHint: "fantasy saga" },
-  { id: 3, title: "La Sombra del Viento", author: "Carlos Ruiz Zafón", imageUrl: "https://placehold.co/300x450/32CD32/FFFFFF.png?text=Libro+3", dataAiHint: "mystery novel" },
-  { id: 4, title: "Educated", author: "Tara Westover", imageUrl: "https://placehold.co/300x450/FFD700/000000.png?text=Libro+4", dataAiHint: "memoir book" },
+  { id: 1, title: "El Jardín de las Mariposas", author: "Dot Hutchison", imageUrl: "/images/books/libro1.jpg" },
+  { id: 2, title: "Fuego y Sangre", author: "George R.R. Martin", imageUrl: "/images/books/libro2.png" },
+  { id: 3, title: "La Sombra del Viento", author: "Carlos Ruiz Zafón", imageUrl: "/images/books/libro3.webp" },
+  { id: 4, title: "Educated", author: "Tara Westover", imageUrl: "/images/books/libro4.jpeg" },
 ];
 
 export default function HomePage() {
@@ -144,7 +144,6 @@ export default function HomePage() {
               <Image
                 src="/images/btca.jpg"
                 alt="Biblioteca moderna y acogedora"
-                data-ai-hint="modern library interior"
                 width={1200}
                 height={500}
                 className="w-full h-auto object-cover"
@@ -153,7 +152,7 @@ export default function HomePage() {
             </CardContent>
           </Card>
         </div>
-        <Button size="lg" asChild className="bg-primary hover:bg-primary/90 text-primary-foreground text-lg px-8 py-6">
+        <Button size="lg" asChild className="bg-primary hover:bg-primary/90 text-primary-foreground text-lg px-8 py-6 rounded-[30px]">
           <Link href="/libros">
             Comenzar a Explorar <ArrowRight className="ml-2 h-5 w-5" />
           </Link>
@@ -163,7 +162,7 @@ export default function HomePage() {
       <section className="container mx-auto px-4 md:px-6">
         <h2 className="text-3xl font-bold text-center mb-10 text-primary">Funcionalidades Principales</h2>
         <div className="grid grid-cols-1 gap-8 md:grid-cols-3 max-w-6xl mx-auto">
-          <FeatureCard
+           <FeatureCard
             icon={<BookOpen className="h-12 w-12 text-accent" />}
             title="Gestión de Libros"
             description="Administre su catálogo de libros, ejemplares y editoriales de forma eficiente e intuitiva."
@@ -226,7 +225,6 @@ export default function HomePage() {
                   width={300}
                   height={450}
                   className="h-full w-full object-cover object-center"
-                  data-ai-hint={book.dataAiHint}
                 />
               </div>
               <div className="mt-4 flex justify-between">
