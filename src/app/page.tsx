@@ -34,7 +34,7 @@ function FeatureCard({ icon, title, description, link, linkLabel }: FeatureCardP
         <p className="text-muted-foreground mb-6">{description}</p>
       </CardContent>
       <CardFooter className="justify-center">
-        <Button variant="outline" asChild className="bg-accent hover:bg-accent/90 text-accent-foreground border-accent hover:border-accent/90">
+        <Button variant="outline" asChild className="px-6 min-w-52 bg-accent hover:bg-accent/90 text-accent-foreground border-accent hover:border-accent/90">
           <Link href={link}>
             {linkLabel} <ArrowRight className="ml-2 h-4 w-4" />
           </Link>
@@ -72,10 +72,10 @@ function StatCard({ title, value, icon, loading, description }: StatCardProps) {
 }
 
 const recentBooksPlaceholder = [
-  { id: 1, title: "El Jardín de las Mariposas", author: "Dot Hutchison", imageUrl: "https://placehold.co/300x450/3F51B5/FFFFFF.png", dataAiHint: "thriller book" },
-  { id: 2, title: "Fuego y Sangre", author: "George R.R. Martin", imageUrl: "https://placehold.co/300x450/FFAB40/000000.png", dataAiHint: "fantasy saga" },
-  { id: 3, title: "La Sombra del Viento", author: "Carlos Ruiz Zafón", imageUrl: "https://placehold.co/300x450/4A90E2/FFFFFF.png", dataAiHint: "mystery novel" },
-  { id: 4, title: "Educated", author: "Tara Westover", imageUrl: "https://placehold.co/300x450/7ED321/000000.png", dataAiHint: "memoir book" },
+  { id: 1, title: "El Jardín de las Mariposas", author: "Dot Hutchison", imageUrl: "https://placehold.co/300x450/FF6347/FFFFFF.png", dataAiHint: "thriller book" },
+  { id: 2, title: "Fuego y Sangre", author: "George R.R. Martin", imageUrl: "https://placehold.co/300x450/4682B4/FFFFFF.png", dataAiHint: "fantasy saga" },
+  { id: 3, title: "La Sombra del Viento", author: "Carlos Ruiz Zafón", imageUrl: "https://placehold.co/300x450/32CD32/000000.png", dataAiHint: "mystery novel" },
+  { id: 4, title: "Educated", author: "Tara Westover", imageUrl: "https://placehold.co/300x450/FFD700/000000.png", dataAiHint: "memoir book" },
 ];
 
 export default function HomePage() {
