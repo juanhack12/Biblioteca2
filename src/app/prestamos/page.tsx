@@ -18,11 +18,11 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { prestamoSchema } from '@/lib/schemas';
 import { cn } from '@/lib/utils';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { z } from 'zod';
 import axios from 'axios';
-import { API_BASE_URL } from '@/lib/api-config';
+// import { API_BASE_URL } from '@/lib/api-config'; // No es necesario aquí si los servicios lo usan
 
 // PrestamoForm Component
 interface PrestamoFormProps {
@@ -50,8 +50,8 @@ function PrestamoForm({ currentData, onSubmit, onCancel, isSubmitting }: Prestam
         idLector: currentData.idLector.toString(),
         idBibliotecario: currentData.idBibliotecario.toString(),
         idEjemplar: currentData.idEjemplar.toString(),
-        fechaPrestamo: currentData.fechaPrestamo,
-        fechaDevolucion: currentData.fechaDevolucion,
+        fechaPrestamo: currentData.fechaPrestamo, // Ya debería ser YYYY-MM-DD
+        fechaDevolucion: currentData.fechaDevolucion, // Ya debería ser YYYY-MM-DD
       });
     } else {
       form.reset({ idLector: '', idBibliotecario: '', idEjemplar: '', fechaPrestamo: '', fechaDevolucion: '' });
@@ -61,6 +61,24 @@ function PrestamoForm({ currentData, onSubmit, onCancel, isSubmitting }: Prestam
   const handleSubmitForm = async (data: PrestamosFormValues) => {
     await onSubmit(data, currentData?.idPrestamo);
   };
+  
+  const safeParseDate = (dateString?: string) => {
+    if (!dateString) return undefined;
+    try {
+      // Asume que la fecha ya está en YYYY-MM-DD o puede ser parseada directamente
+      // Si la API devuelve fechas con zona horaria, parseISO es más robusto
+      if (dateString.includes('T')) {
+        return parseISO(dateString);
+      }
+      // Para YYYY-MM-DD, new Date() puede tener problemas de zona horaria.
+      // Mejor construirla explícitamente o asegurar que el servicio ya la formatea.
+      const [year, month, day] = dateString.split('-').map(Number);
+      return new Date(year, month -1, day);
+    } catch (e) {
+      return undefined;
+    }
+  };
+
 
   return (
     <Card className="max-w-2xl mx-auto">
@@ -74,12 +92,12 @@ function PrestamoForm({ currentData, onSubmit, onCancel, isSubmitting }: Prestam
             <FormField
               control={form.control}
               name="fechaPrestamo"
-              render={({ field }) => (<FormItem className="flex flex-col"><FormLabel>Fecha de Préstamo</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("w-full pl-3 text-left font-normal",!field.value && "text-muted-foreground")}>{field.value ? (format(new Date(field.value), "PPP", { locale: es })) : (<span>Seleccione una fecha</span>)}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value ? new Date(field.value) : undefined} onSelect={(date) => field.onChange(date ? format(date, "yyyy-MM-dd") : '')} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>)}
+              render={({ field }) => (<FormItem className="flex flex-col"><FormLabel>Fecha de Préstamo</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("w-full pl-3 text-left font-normal",!field.value && "text-muted-foreground")}>{field.value ? (format(safeParseDate(field.value) || new Date(), "PPP", { locale: es })) : (<span>Seleccione una fecha</span>)}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={safeParseDate(field.value)} onSelect={(date) => field.onChange(date ? format(date, "yyyy-MM-dd") : '')} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>)}
             />
             <FormField
               control={form.control}
               name="fechaDevolucion"
-              render={({ field }) => (<FormItem className="flex flex-col"><FormLabel>Fecha de Devolución</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("w-full pl-3 text-left font-normal",!field.value && "text-muted-foreground")}>{field.value ? (format(new Date(field.value), "PPP", { locale: es })) : (<span>Seleccione una fecha</span>)}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value ? new Date(field.value) : undefined} onSelect={(date) => field.onChange(date ? format(date, "yyyy-MM-dd") : '')} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>)}
+              render={({ field }) => (<FormItem className="flex flex-col"><FormLabel>Fecha de Devolución</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("w-full pl-3 text-left font-normal",!field.value && "text-muted-foreground")}>{field.value ? (format(safeParseDate(field.value) || new Date(), "PPP", { locale: es })) : (<span>Seleccione una fecha</span>)}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={safeParseDate(field.value)} onSelect={(date) => field.onChange(date ? format(date, "yyyy-MM-dd") : '')} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>)}
             />
           </CardContent>
           <CardFooter className="flex justify-end space-x-4">
@@ -100,10 +118,17 @@ interface PrestamoListProps {
 }
 
 function PrestamoList({ items, onEdit, onDelete }: PrestamoListProps) {
-  const formatDate = (dateString?: string) => {
+  const formatDateForDisplay = (dateString?: string) => {
     if (!dateString) return 'N/A';
-    const date = new Date(dateString.includes('T') ? dateString : dateString + 'T00:00:00');
-    return format(date, 'PPP', { locale: es });
+    try {
+      // Intenta parsear la fecha, si ya está en YYYY-MM-DD o es parseable
+      // Para fechas DateOnly, el servicio ya las debería tener en YYYY-MM-DD
+      const date = new Date(dateString.includes('T') ? dateString : `${dateString}T00:00:00Z`);
+      return format(date, 'PPP', { locale: es });
+    } catch (e) {
+      console.error("Error formatting date for display:", dateString, e);
+      return dateString; // Devuelve el string original si falla el formato
+    }
   };
   return (
     <Card>
@@ -113,10 +138,10 @@ function PrestamoList({ items, onEdit, onDelete }: PrestamoListProps) {
           <p className="text-muted-foreground">No hay préstamos registrados o que coincidan con la búsqueda.</p>
         ) : (
           <div className="overflow-x-auto">
-            <Table><TableHeader><TableRow><TableHead>ID</TableHead><TableHead>Lector</TableHead><TableHead>Bibliotecario</TableHead><TableHead>Título Libro</TableHead><TableHead>ID Ejemplar</TableHead><TableHead>F. Préstamo</TableHead><TableHead>F. Devolución</TableHead><TableHead className="text-right">Acciones</TableHead></TableRow></TableHeader>
+            <Table><TableHeader><TableRow><TableHead>ID</TableHead><TableHead>Lector</TableHead><TableHead>Bibliotecario</TableHead><TableHead>Título Libro</TableHead><TableHead>F. Préstamo</TableHead><TableHead>F. Devolución</TableHead><TableHead className="text-right">Acciones</TableHead></TableRow></TableHeader>
               <TableBody>
                 {items.map((item) => (
-                  <TableRow key={item.idPrestamo}><TableCell>{item.idPrestamo}</TableCell><TableCell>{item.nombreLector || `ID: ${item.idLector}`}</TableCell><TableCell>{item.nombreBibliotecario || `ID: ${item.idBibliotecario}`}</TableCell><TableCell>{item.tituloLibroEjemplar || 'N/A'}</TableCell><TableCell>{item.idEjemplar}</TableCell><TableCell>{formatDate(item.fechaPrestamo)}</TableCell><TableCell>{formatDate(item.fechaDevolucion)}</TableCell><TableCell className="text-right space-x-2">
+                  <TableRow key={item.idPrestamo}><TableCell>{item.idPrestamo}</TableCell><TableCell>{item.nombreLector || `ID: ${item.idLector}`}</TableCell><TableCell>{item.nombreBibliotecario || `ID: ${item.idBibliotecario}`}</TableCell><TableCell>{item.tituloLibroEjemplar || `ID Ejemplar: ${item.idEjemplar}`}</TableCell><TableCell>{formatDateForDisplay(item.fechaPrestamo)}</TableCell><TableCell>{formatDateForDisplay(item.fechaDevolucion)}</TableCell><TableCell className="text-right space-x-2">
                       <Button variant="outline" size="icon" onClick={() => onEdit(item)} aria-label="Editar"><Edit className="h-4 w-4" /></Button>
                       <Button variant="destructive" size="icon" onClick={() => onDelete(item.idPrestamo)} aria-label="Eliminar"><Trash2 className="h-4 w-4" /></Button>
                     </TableCell></TableRow>
@@ -152,8 +177,16 @@ export default function PrestamosPage() {
     } catch (err: any) {
       console.error("Error al cargar préstamos (loadData):", err);
       let description = "Error al cargar préstamos.";
-      if (axios.isAxiosError(err)) {
+       if (axios.isAxiosError(err)) {
         description = err.response?.data?.message || err.message || "Error de red o servidor.";
+        console.error("Full Axios error object (loadData - Préstamos):", {
+          message: err.message,
+          code: err.code,
+          status: err.response?.status,
+          data: err.response?.data,
+          url: err.config?.url,
+          isAxiosError: err.isAxiosError,
+        });
       } else if (err instanceof Error) {
         description = err.message;
       }
@@ -173,13 +206,13 @@ export default function PrestamosPage() {
     const lowercasedFilter = searchTerm.toLowerCase();
     const filtered = data.filter(item => {
       return (
-        item.idPrestamo.toString().includes(searchTerm) ||
+        item.idPrestamo.toString().includes(lowercasedFilter) ||
         (item.nombreLector && item.nombreLector.toLowerCase().includes(lowercasedFilter)) ||
-        item.idLector.toString().includes(searchTerm) ||
+        item.idLector.toString().includes(lowercasedFilter) ||
         (item.nombreBibliotecario && item.nombreBibliotecario.toLowerCase().includes(lowercasedFilter)) ||
-        item.idBibliotecario.toString().includes(searchTerm) ||
+        item.idBibliotecario.toString().includes(lowercasedFilter) ||
         (item.tituloLibroEjemplar && item.tituloLibroEjemplar.toLowerCase().includes(lowercasedFilter)) ||
-        item.idEjemplar.toString().includes(searchTerm) ||
+        item.idEjemplar.toString().includes(lowercasedFilter) ||
         (item.fechaPrestamo && item.fechaPrestamo.toLowerCase().includes(lowercasedFilter)) ||
         (item.fechaDevolucion && item.fechaDevolucion.toLowerCase().includes(lowercasedFilter))
       );
@@ -190,16 +223,14 @@ export default function PrestamosPage() {
   const handleSubmit = async (formData: PrestamosFormValues, id?: number) => {
     setIsSubmitting(true);
     try {
+      // Zod ya hizo la coerción de los IDs string a number si es necesario
       const coercedData = prestamoSchema.parse(formData);
-      const idLectorNum = Number(coercedData.idLector);
-      const idBibliotecarioNum = Number(coercedData.idBibliotecario);
-      const idEjemplarNum = Number(coercedData.idEjemplar);
-
+      
       if (id) {
-        await updatePrestamo(id, idLectorNum, idBibliotecarioNum, idEjemplarNum, coercedData.fechaPrestamo, coercedData.fechaDevolucion);
+        await updatePrestamo(id, coercedData.idLector, coercedData.idBibliotecario, coercedData.idEjemplar, coercedData.fechaPrestamo, coercedData.fechaDevolucion);
         toast({ title: "Éxito", description: "Préstamo actualizado." });
       } else {
-        await createPrestamo(idLectorNum, idBibliotecarioNum, idEjemplarNum, coercedData.fechaPrestamo, coercedData.fechaDevolucion);
+        await createPrestamo(coercedData.idLector, coercedData.idBibliotecario, coercedData.idEjemplar, coercedData.fechaPrestamo, coercedData.fechaDevolucion);
         toast({ title: "Éxito", description: "Préstamo creado." });
       }
       setShowForm(false); setCurrentItem(null); loadData();
@@ -207,15 +238,18 @@ export default function PrestamosPage() {
        console.error("Error al guardar préstamo (handleSubmit):", err);
       let description = "Error al guardar el préstamo.";
       if (err instanceof z.ZodError) {
-        description = err.errors.map(e => e.message).join(', ');
+        description = err.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ');
         toast({ title: "Error de Validación", description, variant: "destructive"});
       } else if (axios.isAxiosError(err)) {
-        console.error("Full Axios error object:", err);
-        console.error("error.message:", err.message);
-        console.error("error.code:", err.code);
-        console.error("error.response?.status:", err.response?.status);
-        console.error("error.response?.data:", err.response?.data);
         description = err.response?.data?.message || err.message || "Error de red o servidor.";
+        console.error("Full Axios error object (handleSubmit - Préstamos):", {
+          message: err.message,
+          code: err.code,
+          status: err.response?.status,
+          data: err.response?.data,
+          url: err.config?.url,
+          isAxiosError: err.isAxiosError,
+        });
         toast({ title: "Error", description, variant: "destructive" });
       } else if (err instanceof Error) {
         description = err.message;
@@ -254,7 +288,7 @@ export default function PrestamosPage() {
   const confirmDelete = (id: number) => { setItemToDelete(id); setShowDeleteConfirm(true); };
   const handleCancelForm = () => { setCurrentItem(null); setShowForm(false); };
 
-  if (loading && !showForm && data.length === 0) return (
+  if (loading && !showForm && data.length === 0 && !searchTerm ) return (
     <div className="flex justify-center items-center min-h-[calc(100vh-8rem)]">
       <Loader2 className="h-16 w-16 animate-spin text-primary" />
       <p className="ml-4 text-lg text-muted-foreground">Cargando préstamos...</p>
@@ -273,7 +307,7 @@ export default function PrestamosPage() {
           <div className="flex items-center gap-2 mb-4">
             <Search className="h-5 w-5 text-muted-foreground" />
             <Input
-              placeholder="Buscar por ID, Lector, Bibliotecario, Libro, o fechas..."
+              placeholder="Buscar por ID, Lector, Bibliotecario, Título Libro, o fechas..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="max-w-md"

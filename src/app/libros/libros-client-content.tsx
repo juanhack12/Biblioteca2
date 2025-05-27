@@ -20,8 +20,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { libroSchema } from '@/lib/schemas';
 import { z } from 'zod';
 import axios from 'axios';
-// API_BASE_URL is not used directly in this component, it's used by services
-// import { API_BASE_URL } from '@/lib/api-config';
 
 // LibroForm Component
 interface LibroFormProps {
@@ -39,6 +37,7 @@ function LibroForm({ currentData, initialValues, onSubmit, onCancel, isSubmittin
     defaultValues: {
       titulo: initialValues?.titulo || currentData?.titulo || '',
       anioPublicacion: initialValues?.anioPublicacion?.toString() || currentData?.anioPublicacion?.toString() || '',
+      // idEditorial en el form siempre será un string (ID)
       idEditorial: initialValues?.idEditorial?.toString() || currentData?.idEditorial?.toString() || '',
     },
   });
@@ -129,10 +128,10 @@ function LibroList({ items, onEdit, onDelete }: LibroListProps) {
           <p className="text-muted-foreground text-center py-4">No hay libros registrados o que coincidan con la búsqueda.</p>
         ) : (
           <div className="overflow-x-auto">
-            <Table><TableHeader><TableRow><TableHead className="w-[100px]">ID Libro</TableHead><TableHead>Título</TableHead><TableHead>Año Publicación</TableHead><TableHead>ID Editorial</TableHead><TableHead className="text-right w-[120px]">Acciones</TableHead></TableRow></TableHeader>
+            <Table><TableHeader><TableRow><TableHead className="w-[100px]">ID Libro</TableHead><TableHead>Título</TableHead><TableHead>Año Publicación</TableHead><TableHead>Editorial</TableHead><TableHead className="text-right w-[120px]">Acciones</TableHead></TableRow></TableHeader>
               <TableBody>
                 {items.map((item) => (
-                  <TableRow key={item.idLibro} className="hover:bg-muted/50"><TableCell>{item.idLibro}</TableCell><TableCell>{item.titulo}</TableCell><TableCell>{item.anioPublicacion}</TableCell><TableCell>{item.idEditorial ?? 'N/A'}</TableCell><TableCell className="text-right space-x-2">
+                  <TableRow key={item.idLibro} className="hover:bg-muted/50"><TableCell>{item.idLibro}</TableCell><TableCell>{item.titulo}</TableCell><TableCell>{item.anioPublicacion}</TableCell><TableCell>{item.nombreEditorial || item.idEditorial || 'N/A'}</TableCell><TableCell className="text-right space-x-2">
                       <Button variant="outline" size="icon" onClick={() => onEdit(item)} aria-label="Editar"><Edit className="h-4 w-4" /></Button>
                       <Button variant="destructive" size="icon" onClick={() => onDelete(item.idLibro)} aria-label="Eliminar"><Trash2 className="h-4 w-4" /></Button>
                     </TableCell></TableRow>
@@ -146,7 +145,7 @@ function LibroList({ items, onEdit, onDelete }: LibroListProps) {
   );
 }
 
-// LibrosClientContent Component (formerly LibrosPage)
+// LibrosClientContent Component
 export default function LibrosClientContent() {
   const [data, setData] = useState<LibrosModel[]>([]);
   const [filteredData, setFilteredData] = useState<LibrosModel[]>([]);
@@ -181,7 +180,7 @@ export default function LibrosClientContent() {
     try {
       const [librosResult, editorialesResult] = await Promise.all([
         getAllLibros(),
-        getAllEditoriales()
+        getAllEditoriales() // Necesario para el dropdown en el formulario
       ]);
       setData(librosResult);
       setFilteredData(librosResult);
@@ -191,6 +190,14 @@ export default function LibrosClientContent() {
       let description = "Error al cargar datos iniciales para libros.";
       if (axios.isAxiosError(err)) {
         description = err.response?.data?.message || err.message || "Error de red o servidor.";
+         console.error("Full Axios error object (loadData - Libros):", {
+          message: err.message,
+          code: err.code,
+          status: err.response?.status,
+          data: err.response?.data,
+          url: err.config?.url,
+          isAxiosError: err.isAxiosError,
+        });
       } else if (err instanceof Error) {
         description = err.message;
       }
@@ -209,13 +216,12 @@ export default function LibrosClientContent() {
     }
     const lowercasedFilter = searchTerm.toLowerCase();
     const filtered = data.filter(item => {
-      const editorialDelLibro = editoriales.find(e => e.idEditorial === item.idEditorial);
       return (
         item.idLibro.toString().includes(searchTerm) ||
         (item.titulo && item.titulo.toLowerCase().includes(lowercasedFilter)) ||
         (item.anioPublicacion && item.anioPublicacion.toString().toLowerCase().includes(lowercasedFilter)) || 
-        item.idEditorial.toString().includes(searchTerm) ||
-        (editorialDelLibro && editorialDelLibro.nombre.toLowerCase().includes(lowercasedFilter))
+        (item.nombreEditorial && item.nombreEditorial.toLowerCase().includes(lowercasedFilter)) || // Buscar por nombre de editorial
+        item.idEditorial.toString().includes(searchTerm)
       );
     });
     setFilteredData(filtered);
@@ -225,7 +231,7 @@ export default function LibrosClientContent() {
     setIsSubmitting(true);
     try {
       const coercedData = libroSchema.parse(formData);
-      
+      // idEditorial ya es un número en coercedData gracias a z.coerce.number() en el schema
       if (id) {
         await updateLibro(id, coercedData.titulo, coercedData.anioPublicacion, Number(coercedData.idEditorial));
         toast({ title: "Éxito", description: "Libro actualizado." });
@@ -299,7 +305,7 @@ export default function LibrosClientContent() {
           <div className="flex items-center gap-2 mb-4">
             <Search className="h-5 w-5 text-muted-foreground" />
             <Input
-              placeholder="Buscar por ID, título, año, ID editorial o nombre editorial..."
+              placeholder="Buscar por ID, título, año o nombre editorial..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="max-w-md"
