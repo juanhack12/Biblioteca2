@@ -2,10 +2,14 @@
 "use client";
 
 import React, { useEffect, useState, useCallback } from 'react';
-import type { PrestamosModel, PrestamosFormValues } from '@/lib/types';
+import type { PrestamosModel, PrestamosFormValues, LectoresModel, BibliotecariosModel, EjemplaresModel } from '@/lib/types';
 import { getAllPrestamos, createPrestamo, updatePrestamo, deletePrestamo } from '@/lib/services/prestamos';
+import { getAllLectores } from '@/lib/services/lectores';
+import { getAllBibliotecarios } from '@/lib/services/bibliotecarios';
+import { getAllEjemplares } from '@/lib/services/ejemplares';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { PlusCircle, Loader2, ArrowRightLeft, Edit, Trash2, CalendarIcon, Search } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
@@ -22,7 +26,6 @@ import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { z } from 'zod';
 import axios from 'axios';
-// import { API_BASE_URL } from '@/lib/api-config'; // No es necesario aquí si los servicios lo usan
 
 // PrestamoForm Component
 interface PrestamoFormProps {
@@ -30,9 +33,12 @@ interface PrestamoFormProps {
   onSubmit: (data: PrestamosFormValues, id?: number) => Promise<void>;
   onCancel: () => void;
   isSubmitting: boolean;
+  lectores: LectoresModel[];
+  bibliotecarios: BibliotecariosModel[];
+  ejemplares: EjemplaresModel[];
 }
 
-function PrestamoForm({ currentData, onSubmit, onCancel, isSubmitting }: PrestamoFormProps) {
+function PrestamoForm({ currentData, onSubmit, onCancel, isSubmitting, lectores, bibliotecarios, ejemplares }: PrestamoFormProps) {
   const form = useForm<PrestamosFormValues>({
     resolver: zodResolver(prestamoSchema),
     defaultValues: {
@@ -50,8 +56,8 @@ function PrestamoForm({ currentData, onSubmit, onCancel, isSubmitting }: Prestam
         idLector: currentData.idLector.toString(),
         idBibliotecario: currentData.idBibliotecario.toString(),
         idEjemplar: currentData.idEjemplar.toString(),
-        fechaPrestamo: currentData.fechaPrestamo, // Ya debería ser YYYY-MM-DD
-        fechaDevolucion: currentData.fechaDevolucion, // Ya debería ser YYYY-MM-DD
+        fechaPrestamo: currentData.fechaPrestamo, 
+        fechaDevolucion: currentData.fechaDevolucion,
       });
     } else {
       form.reset({ idLector: '', idBibliotecario: '', idEjemplar: '', fechaPrestamo: '', fechaDevolucion: '' });
@@ -65,18 +71,10 @@ function PrestamoForm({ currentData, onSubmit, onCancel, isSubmitting }: Prestam
   const safeParseDate = (dateString?: string) => {
     if (!dateString) return undefined;
     try {
-      // Asume que la fecha ya está en YYYY-MM-DD o puede ser parseada directamente
-      // Si la API devuelve fechas con zona horaria, parseISO es más robusto
-      if (dateString.includes('T')) {
-        return parseISO(dateString);
-      }
-      // Para YYYY-MM-DD, new Date() puede tener problemas de zona horaria.
-      // Mejor construirla explícitamente o asegurar que el servicio ya la formatea.
+      if (dateString.includes('T')) return parseISO(dateString);
       const [year, month, day] = dateString.split('-').map(Number);
       return new Date(year, month -1, day);
-    } catch (e) {
-      return undefined;
-    }
+    } catch (e) { return undefined; }
   };
 
 
@@ -86,9 +84,48 @@ function PrestamoForm({ currentData, onSubmit, onCancel, isSubmitting }: Prestam
       <Form {...form}>
         <form onSubmit={form.handleSubmit(handleSubmitForm)}>
           <CardContent className="space-y-6">
-            <FormField control={form.control} name="idLector" render={({ field }) => (<FormItem><FormLabel>ID Lector</FormLabel><FormControl><Input type="number" placeholder="Ej: 1" {...field} onChange={e => field.onChange(e.target.value)} value={field.value ?? ''}/></FormControl><FormMessage /></FormItem>)} />
-            <FormField control={form.control} name="idBibliotecario" render={({ field }) => (<FormItem><FormLabel>ID Bibliotecario</FormLabel><FormControl><Input type="number" placeholder="Ej: 1" {...field} onChange={e => field.onChange(e.target.value)} value={field.value ?? ''}/></FormControl><FormMessage /></FormItem>)} />
-            <FormField control={form.control} name="idEjemplar" render={({ field }) => (<FormItem><FormLabel>ID Ejemplar</FormLabel><FormControl><Input type="number" placeholder="Ej: 1" {...field} onChange={e => field.onChange(e.target.value)} value={field.value ?? ''}/></FormControl><FormMessage /></FormItem>)} />
+            <FormField
+              control={form.control}
+              name="idLector"
+              render={({ field }) => (<FormItem><FormLabel>Lector</FormLabel>
+                <Select onValueChange={field.onChange} value={field.value?.toString() ?? ''} defaultValue={field.value?.toString() ?? ''}>
+                  <FormControl><SelectTrigger><SelectValue placeholder="Seleccione un lector" /></SelectTrigger></FormControl>
+                  <SelectContent>
+                    {lectores.map((lector) => (
+                      <SelectItem key={lector.idLector} value={lector.idLector.toString()}>
+                        {lector.nombre} {lector.apellido} (ID: {lector.idLector})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select><FormMessage /></FormItem>)} />
+            <FormField
+              control={form.control}
+              name="idBibliotecario"
+              render={({ field }) => (<FormItem><FormLabel>Bibliotecario</FormLabel>
+                <Select onValueChange={field.onChange} value={field.value?.toString() ?? ''} defaultValue={field.value?.toString() ?? ''}>
+                  <FormControl><SelectTrigger><SelectValue placeholder="Seleccione un bibliotecario" /></SelectTrigger></FormControl>
+                  <SelectContent>
+                    {bibliotecarios.map((bibliotecario) => (
+                      <SelectItem key={bibliotecario.idBibliotecario} value={bibliotecario.idBibliotecario.toString()}>
+                        {bibliotecario.nombre} {bibliotecario.apellido} (ID: {bibliotecario.idBibliotecario})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select><FormMessage /></FormItem>)} />
+            <FormField
+              control={form.control}
+              name="idEjemplar"
+              render={({ field }) => (<FormItem><FormLabel>Ejemplar (Libro)</FormLabel>
+                <Select onValueChange={field.onChange} value={field.value?.toString() ?? ''} defaultValue={field.value?.toString() ?? ''}>
+                  <FormControl><SelectTrigger><SelectValue placeholder="Seleccione un ejemplar" /></SelectTrigger></FormControl>
+                  <SelectContent>
+                    {ejemplares.map((ejemplar) => (
+                      <SelectItem key={ejemplar.idEjemplar} value={ejemplar.idEjemplar.toString()}>
+                        {ejemplar.tituloLibro} (ID Ejemplar: {ejemplar.idEjemplar})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select><FormMessage /></FormItem>)} />
             <FormField
               control={form.control}
               name="fechaPrestamo"
@@ -121,13 +158,10 @@ function PrestamoList({ items, onEdit, onDelete }: PrestamoListProps) {
   const formatDateForDisplay = (dateString?: string) => {
     if (!dateString) return 'N/A';
     try {
-      // Intenta parsear la fecha, si ya está en YYYY-MM-DD o es parseable
-      // Para fechas DateOnly, el servicio ya las debería tener en YYYY-MM-DD
       const date = new Date(dateString.includes('T') ? dateString : `${dateString}T00:00:00Z`);
       return format(date, 'PPP', { locale: es });
     } catch (e) {
-      console.error("Error formatting date for display:", dateString, e);
-      return dateString; // Devuelve el string original si falla el formato
+      return dateString; 
     }
   };
   return (
@@ -141,7 +175,7 @@ function PrestamoList({ items, onEdit, onDelete }: PrestamoListProps) {
             <Table><TableHeader><TableRow><TableHead>ID</TableHead><TableHead>Lector</TableHead><TableHead>Bibliotecario</TableHead><TableHead>Título Libro</TableHead><TableHead>F. Préstamo</TableHead><TableHead>F. Devolución</TableHead><TableHead className="text-right">Acciones</TableHead></TableRow></TableHeader>
               <TableBody>
                 {items.map((item) => (
-                  <TableRow key={item.idPrestamo}><TableCell>{item.idPrestamo}</TableCell><TableCell>{item.nombreLector || `ID: ${item.idLector}`}</TableCell><TableCell>{item.nombreBibliotecario || `ID: ${item.idBibliotecario}`}</TableCell><TableCell>{item.tituloLibroEjemplar || `ID Ejemplar: ${item.idEjemplar}`}</TableCell><TableCell>{formatDateForDisplay(item.fechaPrestamo)}</TableCell><TableCell>{formatDateForDisplay(item.fechaDevolucion)}</TableCell><TableCell className="text-right space-x-2">
+                  <TableRow key={item.idPrestamo}><TableCell>{item.idPrestamo}</TableCell><TableCell>{item.nombreLector || `ID Lector: ${item.idLector}`}</TableCell><TableCell>{item.nombreBibliotecario || `ID Bibliotecario: ${item.idBibliotecario}`}</TableCell><TableCell>{item.tituloLibroEjemplar || `ID Ejemplar: ${item.idEjemplar}`}</TableCell><TableCell>{formatDateForDisplay(item.fechaPrestamo)}</TableCell><TableCell>{formatDateForDisplay(item.fechaDevolucion)}</TableCell><TableCell className="text-right space-x-2">
                       <Button variant="outline" size="icon" onClick={() => onEdit(item)} aria-label="Editar"><Edit className="h-4 w-4" /></Button>
                       <Button variant="destructive" size="icon" onClick={() => onDelete(item.idPrestamo)} aria-label="Eliminar"><Trash2 className="h-4 w-4" /></Button>
                     </TableCell></TableRow>
@@ -159,6 +193,9 @@ function PrestamoList({ items, onEdit, onDelete }: PrestamoListProps) {
 export default function PrestamosPage() {
   const [data, setData] = useState<PrestamosModel[]>([]);
   const [filteredData, setFilteredData] = useState<PrestamosModel[]>([]);
+  const [lectores, setLectores] = useState<LectoresModel[]>([]);
+  const [bibliotecarios, setBibliotecarios] = useState<BibliotecariosModel[]>([]);
+  const [ejemplares, setEjemplares] = useState<EjemplaresModel[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [currentItem, setCurrentItem] = useState<PrestamosModel | null>(null);
@@ -171,26 +208,26 @@ export default function PrestamosPage() {
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const result = await getAllPrestamos();
-      setData(result);
-      setFilteredData(result);
+      const [prestamosResult, lectoresResult, bibliotecariosResult, ejemplaresResult] = await Promise.all([
+        getAllPrestamos(),
+        getAllLectores(),
+        getAllBibliotecarios(),
+        getAllEjemplares(),
+      ]);
+      setData(prestamosResult);
+      setFilteredData(prestamosResult);
+      setLectores(lectoresResult);
+      setBibliotecarios(bibliotecariosResult);
+      setEjemplares(ejemplaresResult);
     } catch (err: any) {
-      console.error("Error al cargar préstamos (loadData):", err);
-      let description = "Error al cargar préstamos.";
-       if (axios.isAxiosError(err)) {
+      console.error("Error al cargar datos (PrestamosPage):", err);
+      let description = "Error al cargar datos iniciales.";
+      if (axios.isAxiosError(err)) {
         description = err.response?.data?.message || err.message || "Error de red o servidor.";
-        console.error("Full Axios error object (loadData - Préstamos):", {
-          message: err.message,
-          code: err.code,
-          status: err.response?.status,
-          data: err.response?.data,
-          url: err.config?.url,
-          isAxiosError: err.isAxiosError,
-        });
       } else if (err instanceof Error) {
         description = err.message;
       }
-      toast({ title: "Error", description, variant: "destructive" });
+      toast({ title: "Error de Carga", description, variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -223,14 +260,13 @@ export default function PrestamosPage() {
   const handleSubmit = async (formData: PrestamosFormValues, id?: number) => {
     setIsSubmitting(true);
     try {
-      // Zod ya hizo la coerción de los IDs string a number si es necesario
       const coercedData = prestamoSchema.parse(formData);
       
       if (id) {
-        await updatePrestamo(id, coercedData.idLector, coercedData.idBibliotecario, coercedData.idEjemplar, coercedData.fechaPrestamo, coercedData.fechaDevolucion);
+        await updatePrestamo(id, Number(coercedData.idLector), Number(coercedData.idBibliotecario), Number(coercedData.idEjemplar), coercedData.fechaPrestamo, coercedData.fechaDevolucion);
         toast({ title: "Éxito", description: "Préstamo actualizado." });
       } else {
-        await createPrestamo(coercedData.idLector, coercedData.idBibliotecario, coercedData.idEjemplar, coercedData.fechaPrestamo, coercedData.fechaDevolucion);
+        await createPrestamo(Number(coercedData.idLector), Number(coercedData.idBibliotecario), Number(coercedData.idEjemplar), coercedData.fechaPrestamo, coercedData.fechaDevolucion);
         toast({ title: "Éxito", description: "Préstamo creado." });
       }
       setShowForm(false); setCurrentItem(null); loadData();
@@ -241,21 +277,13 @@ export default function PrestamosPage() {
         description = err.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ');
         toast({ title: "Error de Validación", description, variant: "destructive"});
       } else if (axios.isAxiosError(err)) {
-        description = err.response?.data?.message || err.message || "Error de red o servidor.";
-        console.error("Full Axios error object (handleSubmit - Préstamos):", {
-          message: err.message,
-          code: err.code,
-          status: err.response?.status,
-          data: err.response?.data,
-          url: err.config?.url,
-          isAxiosError: err.isAxiosError,
-        });
+        description = err.response?.data?.message || err.response?.data?.error?.message || err.message || "Error de red o servidor.";
         toast({ title: "Error", description, variant: "destructive" });
       } else if (err instanceof Error) {
         description = err.message;
         toast({ title: "Error", description, variant: "destructive" });
       } else {
-         toast({ title: "Error", description, variant: "destructive" });
+         toast({ title: "Error Desconocido", description: "Ocurrió un error inesperado.", variant: "destructive" });
       }
     } finally {
       setIsSubmitting(false);
@@ -273,7 +301,7 @@ export default function PrestamosPage() {
       console.error("Error al eliminar préstamo (handleDelete):", err);
       let description = "Error al eliminar préstamo.";
       if (axios.isAxiosError(err)) {
-        description = err.response?.data?.message || err.message || "Error de red o servidor.";
+        description = err.response?.data?.message || err.response?.data?.error?.message || err.message || "Error de red o servidor.";
       } else if (err instanceof Error) {
         description = err.message;
       }
@@ -291,7 +319,7 @@ export default function PrestamosPage() {
   if (loading && !showForm && data.length === 0 && !searchTerm ) return (
     <div className="flex justify-center items-center min-h-[calc(100vh-8rem)]">
       <Loader2 className="h-16 w-16 animate-spin text-primary" />
-      <p className="ml-4 text-lg text-muted-foreground">Cargando préstamos...</p>
+      <p className="ml-4 text-lg text-muted-foreground">Cargando datos para préstamos...</p>
     </div>
   );
   
@@ -301,7 +329,7 @@ export default function PrestamosPage() {
         <h1 className="text-3xl font-bold text-primary flex items-center"><ArrowRightLeft className="mr-3 h-8 w-8" />Gestión de Préstamos</h1>
         {!showForm && ( <Button onClick={handleAddNew} className="shadow-md"><PlusCircle className="mr-2 h-5 w-5" />Agregar Nuevo</Button> )}
       </div>
-      {showForm ? ( <PrestamoForm currentData={currentItem} onSubmit={handleSubmit} onCancel={handleCancelForm} isSubmitting={isSubmitting} /> ) 
+      {showForm ? ( <PrestamoForm currentData={currentItem} onSubmit={handleSubmit} onCancel={handleCancelForm} isSubmitting={isSubmitting} lectores={lectores} bibliotecarios={bibliotecarios} ejemplares={ejemplares} /> ) 
       : ( 
         <>
           <div className="flex items-center gap-2 mb-4">

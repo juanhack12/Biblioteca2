@@ -4,8 +4,10 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import type { EjemplaresModel, EjemplaresFormValues, LibrosModel } from '@/lib/types';
 import { getAllEjemplares, createEjemplar, updateEjemplar, deleteEjemplar } from '@/lib/services/ejemplares';
+import { getAllLibros } from '@/lib/services/libros'; // Importar servicio de libros
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { PlusCircle, Loader2, Book, Edit, Trash2, Search } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
@@ -17,8 +19,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { ejemplarSchema } from '@/lib/schemas';
 import { z } from 'zod'; 
 import axios from 'axios';
-// API_BASE_URL is not used directly in this component, it's used by services
-// import { API_BASE_URL } from '@/lib/api-config';
 
 // EjemplarForm Component
 interface EjemplarFormProps {
@@ -26,9 +26,10 @@ interface EjemplarFormProps {
   onSubmit: (data: EjemplaresFormValues, id?: number) => Promise<void>;
   onCancel: () => void;
   isSubmitting: boolean;
+  libros: LibrosModel[]; // Lista de libros para el selector
 }
 
-function EjemplarForm({ currentData, onSubmit, onCancel, isSubmitting }: EjemplarFormProps) {
+function EjemplarForm({ currentData, onSubmit, onCancel, isSubmitting, libros }: EjemplarFormProps) {
   const form = useForm<EjemplaresFormValues>({
     resolver: zodResolver(ejemplarSchema),
     defaultValues: {
@@ -41,7 +42,7 @@ function EjemplarForm({ currentData, onSubmit, onCancel, isSubmitting }: Ejempla
     if (currentData) {
       form.reset({
         idLibro: currentData.idLibro?.toString() ?? '',
-        ubicacion: currentData.ubicacion || '', // Ensure this is not undefined
+        ubicacion: currentData.ubicacion || '',
       });
     } else {
       form.reset({
@@ -70,16 +71,21 @@ function EjemplarForm({ currentData, onSubmit, onCancel, isSubmitting }: Ejempla
               name="idLibro"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>ID Libro</FormLabel>
-                  <FormControl>
-                    <Input 
-                      type="number" 
-                      placeholder="Ej: 101" 
-                      {...field} 
-                      onChange={e => field.onChange(e.target.value)} 
-                      value={field.value ?? ''} 
-                    />
-                  </FormControl>
+                  <FormLabel>Libro</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value?.toString() ?? ''} defaultValue={field.value?.toString() ?? ''}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Seleccione un libro" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {libros.map((libro) => (
+                        <SelectItem key={libro.idLibro} value={libro.idLibro.toString()}>
+                          {libro.titulo} (ID: {libro.idLibro})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}
@@ -94,7 +100,6 @@ function EjemplarForm({ currentData, onSubmit, onCancel, isSubmitting }: Ejempla
                     <Input 
                       placeholder="Ej: Estante A-3, Fila 2" 
                       {...field} 
-                      onChange={e => field.onChange(e.target.value)} 
                       value={field.value ?? ''} 
                     />
                   </FormControl>
@@ -152,6 +157,7 @@ function EjemplarList({ items, onEdit, onDelete }: EjemplarListProps) {
 export default function EjemplaresPage() {
   const [data, setData] = useState<EjemplaresModel[]>([]);
   const [filteredData, setFilteredData] = useState<EjemplaresModel[]>([]);
+  const [libros, setLibros] = useState<LibrosModel[]>([]); // Estado para libros
   const [loading, setLoading] = useState<boolean>(true);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [currentItem, setCurrentItem] = useState<EjemplaresModel | null>(null);
@@ -164,24 +170,18 @@ export default function EjemplaresPage() {
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const result = await getAllEjemplares();
-      setData(result);
-      setFilteredData(result); // Initialize filteredData
+      const [ejemplaresResult, librosResult] = await Promise.all([
+        getAllEjemplares(),
+        getAllLibros() // Cargar libros
+      ]);
+      setData(ejemplaresResult);
+      setFilteredData(ejemplaresResult); 
+      setLibros(librosResult);
     } catch (err: any) {
-      console.error("Error al cargar ejemplares (loadData):", err);
-      let description = "Error al cargar ejemplares.";
+      console.error("Error al cargar datos (EjemplaresPage):", err);
+      let description = "Error al cargar datos iniciales.";
       if (axios.isAxiosError(err)) {
         description = err.response?.data?.message || err.message || "Error de red o servidor.";
-         console.error("Full Axios error object (loadData - Ejemplares):", {
-          message: err.message,
-          code: err.code,
-          status: err.response?.status,
-          data: err.response?.data,
-          url: err.config?.url,
-          isAxiosError: err.isAxiosError,
-          request: !!err.request,
-          response: !!err.response,
-        });
       } else if (err instanceof Error) {
         description = err.message;
       }
@@ -204,7 +204,7 @@ export default function EjemplaresPage() {
     const filtered = data.filter(item => {
       return (
         item.idEjemplar.toString().includes(searchTerm) ||
-        (item.idLibro && item.idLibro.toString().includes(searchTerm)) || // Search by ID Libro
+        (item.idLibro && item.idLibro.toString().includes(searchTerm)) || 
         (item.tituloLibro && item.tituloLibro.toLowerCase().includes(lowercasedFilter)) ||
         (item.ubicacion && item.ubicacion.toLowerCase().includes(lowercasedFilter))
       );
@@ -216,7 +216,7 @@ export default function EjemplaresPage() {
     setIsSubmitting(true);
     try {
       const coercedData = ejemplarSchema.parse(formData);
-      const idLibroNum = Number(coercedData.idLibro); // idLibro is string from form, coerce to number
+      const idLibroNum = Number(coercedData.idLibro); 
       if (id) {
         await updateEjemplar(id, idLibroNum, coercedData.ubicacion);
         toast({ title: "Éxito", description: "Ejemplar actualizado." });
@@ -234,23 +234,13 @@ export default function EjemplaresPage() {
         description = err.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ');
         toast({ title: "Error de Validación", description, variant: "destructive"});
       } else if (axios.isAxiosError(err)) {
-        description = err.response?.data?.message || err.message || "Error de red o servidor.";
+        description = err.response?.data?.message || err.response?.data?.error?.message || err.message || "Error de red o servidor.";
         toast({ title: "Error", description, variant: "destructive" });
-         console.error("Full Axios error object (handleSubmit - Ejemplares):", {
-          message: err.message,
-          code: err.code,
-          status: err.response?.status,
-          data: err.response?.data,
-          url: err.config?.url,
-          isAxiosError: err.isAxiosError,
-          request: !!err.request,
-          response: !!err.response,
-        });
       } else if (err instanceof Error) {
         description = err.message;
         toast({ title: "Error", description, variant: "destructive" });
       } else {
-         toast({ title: "Error", description, variant: "destructive" });
+         toast({ title: "Error Desconocido", description: "Ocurrió un error inesperado.", variant: "destructive" });
       }
     } finally {
       setIsSubmitting(false);
@@ -268,7 +258,7 @@ export default function EjemplaresPage() {
       console.error("Error al eliminar ejemplar (handleDelete):", err);
        let description = "Error al eliminar ejemplar.";
        if (axios.isAxiosError(err)) {
-        description = err.response?.data?.message || err.message || "Error de red o servidor.";
+        description = err.response?.data?.message || err.response?.data?.error?.message || err.message || "Error de red o servidor.";
       } else if (err instanceof Error) {
         description = err.message;
       }
@@ -285,11 +275,11 @@ export default function EjemplaresPage() {
   const confirmDelete = (id: number) => { setItemToDelete(id); setShowDeleteConfirm(true); };
   const handleCancelForm = () => { setCurrentItem(null); setShowForm(false); };
 
-  if (loading && !showForm && filteredData.length === 0 && !searchTerm) {
+  if (loading && !showForm && data.length === 0 && !searchTerm) {
     return (
       <div className="flex justify-center items-center min-h-[calc(100vh-8rem)]">
         <Loader2 className="h-16 w-16 animate-spin text-primary" />
-        <p className="ml-4 text-lg text-muted-foreground">Cargando ejemplares...</p>
+        <p className="ml-4 text-lg text-muted-foreground">Cargando ejemplares y libros...</p>
       </div>
     );
   }
@@ -300,7 +290,7 @@ export default function EjemplaresPage() {
         <h1 className="text-3xl font-bold text-primary flex items-center gap-3"><Book className="h-8 w-8" />Gestión de Ejemplares</h1>
         {!showForm && ( <Button onClick={handleAddNew} className="shadow-md"><PlusCircle className="mr-2 h-5 w-5" />Agregar Nuevo</Button> )}
       </div>
-      {showForm ? ( <EjemplarForm currentData={currentItem} onSubmit={handleSubmit} onCancel={handleCancelForm} isSubmitting={isSubmitting} /> ) 
+      {showForm ? ( <EjemplarForm currentData={currentItem} onSubmit={handleSubmit} onCancel={handleCancelForm} isSubmitting={isSubmitting} libros={libros} /> ) 
       : ( 
         <>
           <div className="flex items-center gap-2 mb-4">

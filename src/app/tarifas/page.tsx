@@ -2,10 +2,12 @@
 "use client";
 
 import React, { useEffect, useState, useCallback } from 'react';
-import type { TarifasModel, TarifasFormValues } from '@/lib/types';
+import type { TarifasModel, TarifasFormValues, PrestamosModel } from '@/lib/types';
 import { getAllTarifas, createTarifa, updateTarifa, deleteTarifa } from '@/lib/services/tarifas';
+import { getAllPrestamos } from '@/lib/services/prestamos'; // Importar servicio de prestamos
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { PlusCircle, Loader2, CircleDollarSign, Edit, Trash2, Search } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
@@ -16,6 +18,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { tarifaSchema } from '@/lib/schemas';
 import { z } from 'zod';
+import axios from 'axios';
 
 // TarifaForm Component
 interface TarifaFormProps {
@@ -23,9 +26,10 @@ interface TarifaFormProps {
   onSubmit: (data: TarifasFormValues, id?: number) => Promise<void>;
   onCancel: () => void;
   isSubmitting: boolean;
+  prestamos: PrestamosModel[]; // Lista de prestamos para el selector
 }
 
-function TarifaForm({ currentData, onSubmit, onCancel, isSubmitting }: TarifaFormProps) {
+function TarifaForm({ currentData, onSubmit, onCancel, isSubmitting, prestamos }: TarifaFormProps) {
   const form = useForm<TarifasFormValues>({
     resolver: zodResolver(tarifaSchema),
     defaultValues: {
@@ -57,9 +61,22 @@ function TarifaForm({ currentData, onSubmit, onCancel, isSubmitting }: TarifaFor
       <Form {...form}>
         <form onSubmit={form.handleSubmit(handleSubmitForm)}>
           <CardContent className="space-y-6">
-            <FormField control={form.control} name="idPrestamo" render={({ field }) => (<FormItem><FormLabel>ID Préstamo</FormLabel><FormControl><Input type="number" placeholder="Ej: 1" {...field} onChange={e => field.onChange(e.target.value)} value={field.value ?? ''}/></FormControl><FormMessage /></FormItem> )} />
-            <FormField control={form.control} name="diasRetraso" render={({ field }) => (<FormItem><FormLabel>Días de Retraso</FormLabel><FormControl><Input type="number" placeholder="Ej: 5" {...field} onChange={e => field.onChange(e.target.value)} value={field.value ?? ''}/></FormControl><FormMessage /></FormItem> )} />
-            <FormField control={form.control} name="montoTarifa" render={({ field }) => (<FormItem><FormLabel>Monto Tarifa</FormLabel><FormControl><Input type="number" step="0.01" placeholder="Ej: 2.50" {...field} onChange={e => field.onChange(e.target.value)} value={field.value ?? ''}/></FormControl><FormMessage /></FormItem> )} />
+            <FormField
+              control={form.control}
+              name="idPrestamo"
+              render={({ field }) => (<FormItem><FormLabel>Préstamo</FormLabel>
+                <Select onValueChange={field.onChange} value={field.value?.toString() ?? ''} defaultValue={field.value?.toString() ?? ''}>
+                  <FormControl><SelectTrigger><SelectValue placeholder="Seleccione un préstamo" /></SelectTrigger></FormControl>
+                  <SelectContent>
+                    {prestamos.map((prestamo) => (
+                      <SelectItem key={prestamo.idPrestamo} value={prestamo.idPrestamo.toString()}>
+                        ID: {prestamo.idPrestamo} - Lector: {prestamo.nombreLector || prestamo.idLector} - Libro: {prestamo.tituloLibroEjemplar || prestamo.idEjemplar}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select><FormMessage /></FormItem> )} />
+            <FormField control={form.control} name="diasRetraso" render={({ field }) => (<FormItem><FormLabel>Días de Retraso</FormLabel><FormControl><Input type="number" placeholder="Ej: 5" {...field} value={field.value ?? ''}/></FormControl><FormMessage /></FormItem> )} />
+            <FormField control={form.control} name="montoTarifa" render={({ field }) => (<FormItem><FormLabel>Monto Tarifa</FormLabel><FormControl><Input type="number" step="0.01" placeholder="Ej: 2.50" {...field} value={field.value ?? ''}/></FormControl><FormMessage /></FormItem> )} />
           </CardContent>
           <CardFooter className="flex justify-end space-x-4">
             <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>Cancelar</Button>
@@ -76,9 +93,16 @@ interface TarifaListProps {
   items: TarifasModel[];
   onEdit: (item: TarifasModel) => void;
   onDelete: (id: number) => void;
+  prestamos: PrestamosModel[]; // Para poder mostrar info del préstamo
 }
 
-function TarifaList({ items, onEdit, onDelete }: TarifaListProps) {
+function TarifaList({ items, onEdit, onDelete, prestamos }: TarifaListProps) {
+  const getPrestamoInfo = (idPrestamo: number) => {
+    const prestamo = prestamos.find(p => p.idPrestamo === idPrestamo);
+    if (!prestamo) return `ID Préstamo: ${idPrestamo}`;
+    return `ID: ${idPrestamo} (Lector: ${prestamo.nombreLector || prestamo.idLector}, Libro: ${prestamo.tituloLibroEjemplar || prestamo.idEjemplar})`;
+  };
+
   return (
     <Card>
       <CardHeader><CardTitle>Lista de Tarifas</CardTitle></CardHeader>
@@ -87,10 +111,10 @@ function TarifaList({ items, onEdit, onDelete }: TarifaListProps) {
           <p className="text-muted-foreground">No hay tarifas registradas o que coincidan con la búsqueda.</p>
         ) : (
           <div className="overflow-x-auto">
-            <Table><TableHeader><TableRow><TableHead>ID Tarifa</TableHead><TableHead>ID Préstamo</TableHead><TableHead>Días Retraso</TableHead><TableHead>Monto Tarifa</TableHead><TableHead className="text-right">Acciones</TableHead></TableRow></TableHeader>
+            <Table><TableHeader><TableRow><TableHead>ID Tarifa</TableHead><TableHead>Info Préstamo</TableHead><TableHead>Días Retraso</TableHead><TableHead>Monto Tarifa</TableHead><TableHead className="text-right">Acciones</TableHead></TableRow></TableHeader>
               <TableBody>
                 {items.map((item) => (
-                  <TableRow key={item.idTarifa}><TableCell>{item.idTarifa}</TableCell><TableCell>{item.idPrestamo}</TableCell><TableCell>{item.diasRetraso}</TableCell><TableCell>{item.montoTarifa.toFixed(2)}</TableCell><TableCell className="text-right space-x-2">
+                  <TableRow key={item.idTarifa}><TableCell>{item.idTarifa}</TableCell><TableCell>{getPrestamoInfo(item.idPrestamo)}</TableCell><TableCell>{item.diasRetraso}</TableCell><TableCell>{item.montoTarifa.toFixed(2)}</TableCell><TableCell className="text-right space-x-2">
                       <Button variant="outline" size="icon" onClick={() => onEdit(item)} aria-label="Editar"><Edit className="h-4 w-4" /></Button>
                       <Button variant="destructive" size="icon" onClick={() => onDelete(item.idTarifa)} aria-label="Eliminar"><Trash2 className="h-4 w-4" /></Button>
                     </TableCell></TableRow>
@@ -108,6 +132,7 @@ function TarifaList({ items, onEdit, onDelete }: TarifaListProps) {
 export default function TarifasPage() {
   const [data, setData] = useState<TarifasModel[]>([]);
   const [filteredData, setFilteredData] = useState<TarifasModel[]>([]);
+  const [prestamos, setPrestamos] = useState<PrestamosModel[]>([]); // Estado para prestamos
   const [loading, setLoading] = useState<boolean>(true);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [currentItem, setCurrentItem] = useState<TarifasModel | null>(null);
@@ -120,12 +145,16 @@ export default function TarifasPage() {
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const result = await getAllTarifas();
-      setData(result);
-      setFilteredData(result);
-    } catch (err) {
-      toast({ title: "Error", description: "Error al cargar tarifas.", variant: "destructive" });
-      console.error("Error en loadData (Tarifas):", err);
+      const [tarifasResult, prestamosResult] = await Promise.all([
+        getAllTarifas(),
+        getAllPrestamos() // Cargar prestamos
+      ]);
+      setData(tarifasResult);
+      setFilteredData(tarifasResult);
+      setPrestamos(prestamosResult);
+    } catch (err: any) {
+      toast({ title: "Error", description: "Error al cargar datos iniciales.", variant: "destructive" });
+      console.error("Error en loadData (TarifasPage):", err);
     } finally {
       setLoading(false);
     }
@@ -138,17 +167,23 @@ export default function TarifasPage() {
       setFilteredData(data);
       return;
     }
-    const lowercasedFilter = searchTerm.toLowerCase(); // searchTerm is always string
+    const lowercasedFilter = searchTerm.toLowerCase(); 
     const filtered = data.filter(item => {
+      const prestamoRelacionado = prestamos.find(p => p.idPrestamo === item.idPrestamo);
+      const infoPrestamo = prestamoRelacionado ? 
+        `ID: ${item.idPrestamo} Lector: ${prestamoRelacionado.nombreLector || prestamoRelacionado.idLector} Libro: ${prestamoRelacionado.tituloLibroEjemplar || prestamoRelacionado.idEjemplar}`.toLowerCase()
+        : `ID Préstamo: ${item.idPrestamo}`.toLowerCase();
+
       return (
         item.idTarifa.toString().includes(searchTerm) ||
         item.idPrestamo.toString().includes(searchTerm) ||
         item.diasRetraso.toString().includes(searchTerm) ||
-        item.montoTarifa.toString().toLowerCase().includes(lowercasedFilter)
+        item.montoTarifa.toString().toLowerCase().includes(lowercasedFilter) ||
+        infoPrestamo.includes(lowercasedFilter)
       );
     });
     setFilteredData(filtered);
-  }, [searchTerm, data]);
+  }, [searchTerm, data, prestamos]);
 
 
   const handleSubmit = async (formData: TarifasFormValues, id?: number) => {
@@ -157,18 +192,21 @@ export default function TarifasPage() {
       const coercedData = tarifaSchema.parse(formData);
 
       if (id) {
-        await updateTarifa(id, coercedData.idPrestamo, coercedData.diasRetraso, coercedData.montoTarifa);
+        await updateTarifa(id, Number(coercedData.idPrestamo), Number(coercedData.diasRetraso), Number(coercedData.montoTarifa));
         toast({ title: "Éxito", description: "Tarifa actualizada." });
       } else {
-        await createTarifa(coercedData.idPrestamo, coercedData.diasRetraso, coercedData.montoTarifa);
+        await createTarifa(Number(coercedData.idPrestamo), Number(coercedData.diasRetraso), Number(coercedData.montoTarifa));
         toast({ title: "Éxito", description: "Tarifa creada." });
       }
       setShowForm(false); setCurrentItem(null); loadData();
     } catch (err: any) {
       if (err instanceof z.ZodError) {
-        toast({ title: "Error de Validación", description: err.errors.map(e => e.message).join(', '), variant: "destructive"});
-      } else {
-        toast({ title: "Error", description: err.message || "Error al guardar la tarifa.", variant: "destructive" });
+        toast({ title: "Error de Validación", description: err.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', '), variant: "destructive"});
+      } else if (axios.isAxiosError(err)) {
+        toast({ title: "Error", description: err.response?.data?.message || err.response?.data?.error?.message || err.message || "Error de red o servidor.", variant: "destructive" });
+      }
+       else {
+        toast({ title: "Error", description: (err as Error).message || "Error al guardar la tarifa.", variant: "destructive" });
       }
       console.error("Error en handleSubmit (Tarifas):", err);
     } finally {
@@ -183,8 +221,14 @@ export default function TarifasPage() {
       await deleteTarifa(itemToDelete);
       toast({ title: "Éxito", description: "Tarifa eliminada." });
       loadData();
-    } catch (err) {
-      toast({ title: "Error", description: "Error al eliminar tarifa.", variant: "destructive" });
+    } catch (err: any) {
+      let description = "Error al eliminar tarifa.";
+      if (axios.isAxiosError(err)) {
+        description = err.response?.data?.message || err.response?.data?.error?.message || err.message || "Error de red o servidor.";
+      } else if (err instanceof Error) {
+        description = err.message;
+      }
+      toast({ title: "Error", description, variant: "destructive" });
       console.error("Error en handleDelete (Tarifas):", err);
     } finally {
       setIsSubmitting(false); setShowDeleteConfirm(false); setItemToDelete(null);
@@ -196,10 +240,10 @@ export default function TarifasPage() {
   const confirmDelete = (id: number) => { setItemToDelete(id); setShowDeleteConfirm(true); };
   const handleCancelForm = () => { setCurrentItem(null); setShowForm(false); };
 
-  if (loading && !showForm && data.length === 0) return (
+  if (loading && !showForm && data.length === 0 && !searchTerm) return (
     <div className="flex justify-center items-center min-h-[calc(100vh-8rem)]">
       <Loader2 className="h-16 w-16 animate-spin text-primary" />
-      <p className="ml-4 text-lg text-muted-foreground">Cargando tarifas...</p>
+      <p className="ml-4 text-lg text-muted-foreground">Cargando datos para tarifas...</p>
     </div>
   );
   
@@ -209,19 +253,19 @@ export default function TarifasPage() {
         <h1 className="text-3xl font-bold text-primary flex items-center"><CircleDollarSign className="mr-3 h-8 w-8" />Gestión de Tarifas</h1>
         {!showForm && ( <Button onClick={handleAddNew} className="shadow-md"><PlusCircle className="mr-2 h-5 w-5" />Agregar Nueva</Button> )}
       </div>
-      {showForm ? ( <TarifaForm currentData={currentItem} onSubmit={handleSubmit} onCancel={handleCancelForm} isSubmitting={isSubmitting} /> ) 
+      {showForm ? ( <TarifaForm currentData={currentItem} onSubmit={handleSubmit} onCancel={handleCancelForm} isSubmitting={isSubmitting} prestamos={prestamos} /> ) 
       : ( 
         <>
           <div className="flex items-center gap-2 mb-4">
             <Search className="h-5 w-5 text-muted-foreground" />
             <Input
-              placeholder="Buscar por ID Tarifa, ID Préstamo, días o monto..."
+              placeholder="Buscar por ID Tarifa, Info Préstamo, días o monto..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="max-w-md"
             />
           </div>
-          <TarifaList items={filteredData} onEdit={handleEdit} onDelete={confirmDelete} />
+          <TarifaList items={filteredData} onEdit={handleEdit} onDelete={confirmDelete} prestamos={prestamos} />
         </>
       )}
       <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
