@@ -2,10 +2,12 @@
 "use client";
 
 import React, { useEffect, useState, useCallback } from 'react';
-import type { LectoresModel, LectoresFormValues } from '@/lib/types';
+import type { LectoresModel, LectoresFormValues, PersonasModel } from '@/lib/types';
 import { getAllLectores, createLector, updateLector, deleteLector } from '@/lib/services/lectores';
+import { getAllPersonas } from '@/lib/services/personas';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { PlusCircle, Loader2, Users, Edit, Trash2, CalendarIcon, Search } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
@@ -18,7 +20,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { lectorSchema } from '@/lib/schemas';
 import { cn } from '@/lib/utils';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { z } from 'zod';
 import axios from 'axios';
@@ -30,9 +32,10 @@ interface LectorFormProps {
   onSubmit: (data: LectoresFormValues, id?: number) => Promise<void>;
   onCancel: () => void;
   isSubmitting: boolean;
+  personas: PersonasModel[];
 }
 
-function LectorForm({ currentData, onSubmit, onCancel, isSubmitting }: LectorFormProps) {
+function LectorForm({ currentData, onSubmit, onCancel, isSubmitting, personas }: LectorFormProps) {
   const form = useForm<LectoresFormValues>({
     resolver: zodResolver(lectorSchema),
     defaultValues: {
@@ -62,6 +65,15 @@ function LectorForm({ currentData, onSubmit, onCancel, isSubmitting }: LectorFor
     await onSubmit(data, currentData?.idLector);
   };
 
+  const safeParseDate = (dateString?: string) => {
+    if (!dateString) return undefined;
+    try {
+      if (dateString.includes('T')) return parseISO(dateString);
+      const [year, month, day] = dateString.split('-').map(Number);
+      return new Date(year, month -1, day);
+    } catch (e) { return undefined; }
+  };
+
   return (
     <Card className="max-w-2xl mx-auto">
       <CardHeader>
@@ -75,10 +87,21 @@ function LectorForm({ currentData, onSubmit, onCancel, isSubmitting }: LectorFor
               name="idPersona"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>ID Persona</FormLabel>
-                  <FormControl>
-                    <Input type="number" placeholder="Ej: 1" {...field} onChange={e => field.onChange(e.target.value)} value={field.value ?? ''} />
-                  </FormControl>
+                  <FormLabel>Persona</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value?.toString() ?? ''} defaultValue={field.value?.toString() ?? ''}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Seleccione una persona" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {personas.map((persona) => (
+                        <SelectItem key={persona.idPersona} value={persona.idPersona.toString()}>
+                          {persona.nombre} {persona.apellido}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}
@@ -96,7 +119,7 @@ function LectorForm({ currentData, onSubmit, onCancel, isSubmitting }: LectorFor
                           variant={"outline"}
                           className={cn("w-full pl-3 text-left font-normal",!field.value && "text-muted-foreground")}
                         >
-                          {field.value ? (format(new Date(field.value), "PPP", { locale: es })) : (<span>Seleccione una fecha</span>)}
+                          {field.value ? (format(safeParseDate(field.value) || new Date(), "PPP", { locale: es })) : (<span>Seleccione una fecha</span>)}
                           <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                         </Button>
                       </FormControl>
@@ -104,7 +127,7 @@ function LectorForm({ currentData, onSubmit, onCancel, isSubmitting }: LectorFor
                     <PopoverContent className="w-auto p-0" align="start">
                       <Calendar
                         mode="single"
-                        selected={field.value ? new Date(field.value) : undefined}
+                        selected={field.value ? safeParseDate(field.value) : undefined}
                         onSelect={(date) => field.onChange(date ? format(date, "yyyy-MM-dd") : undefined)}
                         initialFocus
                       />
@@ -148,13 +171,12 @@ interface LectorListProps {
 function LectorList({ items, onEdit, onDelete }: LectorListProps) {
   const formatDate = (dateString?: string) => {
     if (!dateString) return 'N/A';
-    const date = new Date(dateString.includes('T') ? dateString : dateString + 'T00:00:00');
+    // Ensure date is treated as UTC if no timezone info is present
+    const date = new Date(dateString.includes('T') ? dateString : `${dateString}T00:00:00Z`);
     return format(date, 'PPP', { locale: es });
   };
   return (
-    <Card>
-      <CardHeader><CardTitle>Lista de Lectores</CardTitle></CardHeader>
-      <CardContent>
+    <Card><CardHeader><CardTitle>Lista de Lectores</CardTitle></CardHeader><CardContent>
         {items.length === 0 ? (
           <p className="text-muted-foreground">No hay lectores registrados o que coincidan con la búsqueda.</p>
         ) : (
@@ -170,9 +192,7 @@ function LectorList({ items, onEdit, onDelete }: LectorListProps) {
               </TableBody>
             </Table>
           </div>
-        )}
-      </CardContent>
-    </Card>
+        )}</CardContent></Card>
   );
 }
 
@@ -180,6 +200,7 @@ function LectorList({ items, onEdit, onDelete }: LectorListProps) {
 export default function LectoresPage() {
   const [data, setData] = useState<LectoresModel[]>([]);
   const [filteredData, setFilteredData] = useState<LectoresModel[]>([]);
+  const [personas, setPersonas] = useState<PersonasModel[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [currentItem, setCurrentItem] = useState<LectoresModel | null>(null);
@@ -192,14 +213,18 @@ export default function LectoresPage() {
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const result = await getAllLectores();
-      setData(result);
-      setFilteredData(result);
+      const [lectoresResult, personasResult] = await Promise.all([
+        getAllLectores(),
+        getAllPersonas()
+      ]);
+      setData(lectoresResult);
+      setFilteredData(lectoresResult);
+      setPersonas(personasResult);
     } catch (err: any) {
-      console.error("Error al cargar lectores (loadData):", err);
-      let description = "Error al cargar lectores.";
+      console.error("Error al cargar datos (LectoresPage):", err);
+      let description = "Error al cargar datos iniciales.";
       if (axios.isAxiosError(err)) {
-        description = err.response?.data?.message || err.message || "Error de red o servidor.";
+        description = err.response?.data?.message || err.response?.data?.error?.message || err.message || "Error de red o servidor.";
       } else if (err instanceof Error) {
         description = err.message;
       }
@@ -235,14 +260,13 @@ export default function LectoresPage() {
     setIsSubmitting(true);
     try {
       const coercedData = lectorSchema.parse(formData);
-      const idPersonaNum = Number(coercedData.idPersona);
       const fechaRegistroToSubmit = coercedData.fechaRegistro || undefined;
 
       if (id) {
-        await updateLector(id, idPersonaNum, fechaRegistroToSubmit, coercedData.ocupacion);
+        await updateLector(id, coercedData.idPersona, fechaRegistroToSubmit, coercedData.ocupacion);
         toast({ title: "Éxito", description: "Lector actualizado." });
       } else {
-        await createLector(idPersonaNum, fechaRegistroToSubmit, coercedData.ocupacion);
+        await createLector(coercedData.idPersona, fechaRegistroToSubmit, coercedData.ocupacion);
         toast({ title: "Éxito", description: "Lector creado." });
       }
       setShowForm(false); setCurrentItem(null); loadData();
@@ -250,16 +274,16 @@ export default function LectoresPage() {
       console.error("Error al guardar lector (handleSubmit):", err);
       let description = "Error al guardar el lector.";
       if (err instanceof z.ZodError) {
-        description = err.errors.map(e => e.message).join(', ');
+        description = err.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ');
         toast({ title: "Error de Validación", description, variant: "destructive"});
       } else if (axios.isAxiosError(err)) {
-        description = err.response?.data?.message || err.message || "Error de red o servidor.";
+        description = err.response?.data?.message || err.response?.data?.error?.message || err.message || "Error de red o servidor.";
         toast({ title: "Error", description, variant: "destructive" });
       } else if (err instanceof Error) {
         description = err.message;
         toast({ title: "Error", description, variant: "destructive" });
       } else {
-         toast({ title: "Error", description, variant: "destructive" });
+         toast({ title: "Error Desconocido", description: "Ocurrió un error inesperado.", variant: "destructive" });
       }
     } finally {
       setIsSubmitting(false);
@@ -277,7 +301,7 @@ export default function LectoresPage() {
       console.error("Error al eliminar lector (handleDelete):", err);
       let description = "Error al eliminar lector.";
       if (axios.isAxiosError(err)) {
-        description = err.response?.data?.message || err.message || "Error de red o servidor.";
+        description = err.response?.data?.message || err.response?.data?.error?.message || err.message || "Error de red o servidor.";
       } else if (err instanceof Error) {
         description = err.message;
       }
@@ -292,10 +316,10 @@ export default function LectoresPage() {
   const confirmDelete = (id: number) => { setItemToDelete(id); setShowDeleteConfirm(true); };
   const handleCancelForm = () => { setCurrentItem(null); setShowForm(false); };
 
-  if (loading && !showForm && data.length === 0) return (
+  if (loading && !showForm && data.length === 0 && !searchTerm) return (
     <div className="flex justify-center items-center min-h-[calc(100vh-8rem)]">
       <Loader2 className="h-16 w-16 animate-spin text-primary" />
-      <p className="ml-4 text-lg text-muted-foreground">Cargando lectores...</p>
+      <p className="ml-4 text-lg text-muted-foreground">Cargando lectores y personas...</p>
     </div>
   );
   
@@ -305,7 +329,7 @@ export default function LectoresPage() {
         <h1 className="text-3xl font-bold text-primary flex items-center"><Users className="mr-3 h-8 w-8" />Gestión de Lectores</h1>
         {!showForm && ( <Button onClick={handleAddNew} className="shadow-md"><PlusCircle className="mr-2 h-5 w-5" />Agregar Nuevo</Button> )}
       </div>
-      {showForm ? ( <LectorForm currentData={currentItem} onSubmit={handleSubmit} onCancel={handleCancelForm} isSubmitting={isSubmitting} /> ) 
+      {showForm ? ( <LectorForm currentData={currentItem} onSubmit={handleSubmit} onCancel={handleCancelForm} isSubmitting={isSubmitting} personas={personas} /> ) 
       : ( 
         <>
           <div className="flex items-center gap-2 mb-4">
@@ -321,10 +345,7 @@ export default function LectoresPage() {
         </>
       )}
       <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
-        <AlertDialogContent>
-          <AlertDialogHeader><AlertDialogTitle>¿Confirmar eliminación?</AlertDialogTitle><AlertDialogDescription>Esta acción no se puede deshacer. ¿Seguro que quieres eliminar este lector?</AlertDialogDescription></AlertDialogHeader>
-          <AlertDialogFooter><AlertDialogCancel onClick={() => setShowDeleteConfirm(false)} disabled={isSubmitting}>Cancelar</AlertDialogCancel><AlertDialogAction onClick={handleDelete} disabled={isSubmitting} className="bg-destructive hover:bg-destructive/90">{isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}Eliminar</AlertDialogAction></AlertDialogFooter>
-        </AlertDialogContent>
+        <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>¿Confirmar eliminación?</AlertDialogTitle><AlertDialogDescription>Esta acción no se puede deshacer. ¿Seguro que quieres eliminar este lector?</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel onClick={() => setShowDeleteConfirm(false)} disabled={isSubmitting}>Cancelar</AlertDialogCancel><AlertDialogAction onClick={handleDelete} disabled={isSubmitting} className="bg-destructive hover:bg-destructive/90">{isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}Eliminar</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
       </AlertDialog>
     </div>
   );

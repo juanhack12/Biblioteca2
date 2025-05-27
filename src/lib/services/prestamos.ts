@@ -6,23 +6,31 @@ import type {
   DateOnlyString,
   LectoresApiResponseDTO,
   BibliotecariosApiResponseDTO,
-  EjemplaresApiResponseDTO, // Usamos el DTO de Ejemplares si es lo que anida PrestamosDTO
+  EjemplaresApiResponseDTO,
   LectoresModel,
   BibliotecariosModel,
   EjemplaresModel,
   PersonasModel,
-  LibrosModel
+  LibrosModel // Necesitamos LibrosModel para el ejemplar anidado
 } from '@/lib/types';
 import { API_BASE_URL, formatDateForApi } from '@/lib/api-config';
 
 const API_URL = `${API_BASE_URL}/Prestamos`;
 
-// Funciones de transformación individuales para mantener la claridad
 const transformLectorSubData = (dto?: LectoresApiResponseDTO): LectoresModel | undefined => {
   if (!dto) return undefined;
   let personaMapped: PersonasModel | undefined = undefined;
-  if (dto.personas) {
-    personaMapped = { ...dto.personas, idPersona: Number(dto.personas.idPersona), fechaNacimiento: formatDateForApi(dto.personas.fechaNacimiento) || '' };
+  if (dto.personas) { // API envía 'Personas' (PascalCase)
+    personaMapped = { 
+        idPersona: Number(dto.personas.idPersona),
+        nombre: dto.personas.nombre,
+        apellido: dto.personas.apellido,
+        documentoIdentidad: dto.personas.documentoIdentidad,
+        fechaNacimiento: formatDateForApi(dto.personas.fechaNacimiento) || '',
+        correo: dto.personas.correo,
+        telefono: dto.personas.telefono,
+        direccion: dto.personas.direccion,
+     };
   }
   return {
     idLector: Number(dto.idLector),
@@ -39,8 +47,17 @@ const transformLectorSubData = (dto?: LectoresApiResponseDTO): LectoresModel | u
 const transformBibliotecarioSubData = (dto?: BibliotecariosApiResponseDTO): BibliotecariosModel | undefined => {
   if (!dto) return undefined;
   let personaMapped: PersonasModel | undefined = undefined;
-  if (dto.personas) {
-     personaMapped = { ...dto.personas, idPersona: Number(dto.personas.idPersona), fechaNacimiento: formatDateForApi(dto.personas.fechaNacimiento) || '' };
+  if (dto.personas) { // API envía 'Personas'
+     personaMapped = { 
+        idPersona: Number(dto.personas.idPersona),
+        nombre: dto.personas.nombre,
+        apellido: dto.personas.apellido,
+        documentoIdentidad: dto.personas.documentoIdentidad,
+        fechaNacimiento: formatDateForApi(dto.personas.fechaNacimiento) || '',
+        correo: dto.personas.correo,
+        telefono: dto.personas.telefono,
+        direccion: dto.personas.direccion,
+      };
   }
   return {
     idBibliotecario: Number(dto.idBibliotecario),
@@ -54,52 +71,46 @@ const transformBibliotecarioSubData = (dto?: BibliotecariosApiResponseDTO): Bibl
   };
 };
 
-const transformEjemplarSubData = (dto?: EjemplaresModel): EjemplaresModel | undefined => {
-  // El backend DTO de Prestamos anida EjemplaresModel, no EjemplaresDTO
-  // EjemplaresModel a su vez anida LibrosModel
-  if (!dto) return undefined;
-  let libroMapped: LibrosModel | undefined = undefined;
-  if (dto.libro) { // Asumiendo que EjemplaresModel en frontend tiene 'libro'
-    libroMapped = {
-        ...dto.libro,
-        idLibro: Number(dto.libro.idLibro),
-        anioPublicacion: String(dto.libro.anioPublicacion),
-        idEditorial: Number(dto.libro.idEditorial),
-    }
-  }
-  return {
-    idEjemplar: Number(dto.idEjemplar),
-    idLibro: dto.idLibro ? Number(dto.idLibro) : undefined,
-    ubicacion: dto.ubicacion,
-    tituloLibro: libroMapped?.titulo || (dto as any).libros?.titulo, // 'libros' si viene del DTO Ejemplar
-    libro: libroMapped || ((dto as any).libros ? transformLibroSubData((dto as any).libros) : undefined)
-  };
-};
-
-const transformLibroSubData = (librosModel?: any): LibrosModel | undefined => {
-    if (!librosModel) return undefined;
-    return {
-        idLibro: Number(librosModel.idLibro),
-        titulo: librosModel.titulo,
-        anioPublicacion: String(librosModel.anioPublicacion),
-        idEditorial: Number(librosModel.idEditorial),
+// El DTO de Préstamos anida EjemplaresModel, que a su vez anida LibrosModel
+const transformEjemplarSubData = (ejemplarModel?: EjemplaresModel): EjemplaresModel | undefined => {
+  if (!ejemplarModel) return undefined;
+  
+  let libroTransformed: LibrosModel | undefined = undefined;
+  if (ejemplarModel.libro) { // Asumiendo que el EjemplaresModel del frontend tiene 'libro'
+    libroTransformed = {
+        idLibro: Number(ejemplarModel.libro.idLibro),
+        titulo: ejemplarModel.libro.titulo,
+        anioPublicacion: String(ejemplarModel.libro.anioPublicacion), // asegurar string
+        idEditorial: Number(ejemplarModel.libro.idEditorial),
+        // nombreEditorial y editorial no vendrían anidados aquí desde el LibrosModel básico
     };
+  } else if ((ejemplarModel as any).libros) { // Fallback si viniera como 'libros' (del DTO de Ejemplar)
+      const librosData = (ejemplarModel as any).libros;
+      libroTransformed = {
+        idLibro: Number(librosData.idLibro),
+        titulo: librosData.titulo,
+        anioPublicacion: String(librosData.anioPublicacion),
+        idEditorial: Number(librosData.idEditorial),
+      };
+  }
+
+  return {
+    idEjemplar: Number(ejemplarModel.idEjemplar),
+    idLibro: ejemplarModel.idLibro ? Number(ejemplarModel.idLibro) : undefined,
+    ubicacion: ejemplarModel.ubicacion,
+    // El título del libro ahora vendrá de la propiedad 'Titulo' en el PrestamosDTO
+    // o podemos intentar obtenerlo del libro anidado si está presente.
+    tituloLibro: (ejemplarModel as any).titulo || libroTransformed?.titulo,
+    libro: libroTransformed
+  };
 };
 
 
 const transformPrestamoData = (dto: PrestamosApiResponseDTO): PrestamosModel => {
   const lectorTransformed = transformLectorSubData(dto.lectores);
   const bibliotecarioTransformed = transformBibliotecarioSubData(dto.bibliotecarios);
-  // DTO de Prestamos anida EjemplaresModel (que a su vez tiene LibrosModel)
-  const ejemplarTransformed = dto.ejemplares ? {
-    ...dto.ejemplares,
-    idEjemplar: Number(dto.ejemplares.idEjemplar),
-    idLibro: dto.ejemplares.idLibro ? Number(dto.ejemplares.idLibro) : undefined,
-    libro: dto.ejemplares.libro ? transformLibroSubData(dto.ejemplares.libro) : undefined,
-    // Añadimos tituloLibro al ejemplar anidado también
-    tituloLibro: dto.ejemplares.libro?.titulo 
-  } as EjemplaresModel : undefined;
-
+  // El DTO de Préstamos anida EjemplaresModel (del backend, que tiene LibrosModel anidado)
+  const ejemplarTransformed = dto.ejemplares ? transformEjemplarSubData(dto.ejemplares) : undefined;
 
   return {
     idPrestamo: Number(dto.idPrestamo),
@@ -108,9 +119,10 @@ const transformPrestamoData = (dto: PrestamosApiResponseDTO): PrestamosModel => 
     idEjemplar: Number(dto.idEjemplar),
     fechaPrestamo: formatDateForApi(dto.fechaPrestamo) || '',
     fechaDevolucion: formatDateForApi(dto.fechaDevolucion) || '',
-    nombreLector: dto.nombreLector || (lectorTransformed?.nombre ? `${lectorTransformed.nombre} ${lectorTransformed.apellido}` : undefined),
-    nombreBibliotecario: dto.nombreBibliotecario || (bibliotecarioTransformed?.nombre ? `${bibliotecarioTransformed.nombre} ${bibliotecarioTransformed.apellido}` : undefined),
-    tituloLibroEjemplar: ejemplarTransformed?.libro?.titulo,
+    nombreLector: dto.nombreLector || (lectorTransformed?.nombre ? `${lectorTransformed.nombre} ${lectorTransformed.apellido || ''}`.trim() : undefined),
+    nombreBibliotecario: dto.nombreBibliotecario || (bibliotecarioTransformed?.nombre ? `${bibliotecarioTransformed.nombre} ${bibliotecarioTransformed.apellido || ''}`.trim() : undefined),
+    // Usar la propiedad Titulo directamente del PrestamosDTO
+    tituloLibroEjemplar: dto.titulo, 
     lector: lectorTransformed,
     bibliotecario: bibliotecarioTransformed,
     ejemplar: ejemplarTransformed
@@ -128,6 +140,7 @@ export const getPrestamoById = async (id: number): Promise<PrestamosModel> => {
   return transformPrestamoData(response.data);
 };
 
+// El controller devuelve PrestamosModel, no DTO
 export const createPrestamo = async (
   idLector: number,
   idBibliotecario: number,
@@ -135,17 +148,24 @@ export const createPrestamo = async (
   fechaPrestamo: DateOnlyString,
   fechaDevolucion: DateOnlyString
 ): Promise<PrestamosModel> => {
-  // Backend devuelve PrestamosModel
-  const response = await axios.post<any>(
+  const response = await axios.post<any>( // Respuesta es PrestamosModel según controller
     `${API_URL}/${idLector}/${idBibliotecario}/${idEjemplar}/${encodeURIComponent(fechaPrestamo)}/${encodeURIComponent(fechaDevolucion)}`
   );
-  // Es posible que la respuesta de create no sea el DTO completo.
-  // Para tener consistencia, podríamos necesitar volver a buscar el préstamo por ID para obtener el DTO completo.
-  // O, si el backend devuelve el DTO enriquecido en create, usamos eso.
-  // Por ahora, asumimos que devuelve un DTO-like o un modelo que necesita transformación.
-  return transformPrestamoData(response.data as PrestamosApiResponseDTO);
+  // Mapeamos la respuesta del backend (que es PrestamosModel)
+  // Los campos descriptivos (nombreLector, nombreBibliotecario, tituloLibroEjemplar) no estarán en esta respuesta
+  // y serán undefined. Se poblarán al recargar la lista.
+  const createdData = response.data;
+  return {
+    idPrestamo: Number(createdData.idPrestamo),
+    idLector: Number(createdData.idLector),
+    idBibliotecario: Number(createdData.idBibliotecario),
+    idEjemplar: Number(createdData.idEjemplar),
+    fechaPrestamo: formatDateForApi(createdData.fechaPrestamo) || '',
+    fechaDevolucion: formatDateForApi(createdData.fechaDevolucion) || '',
+  };
 };
 
+// El controller devuelve PrestamosModel, no DTO
 export const updatePrestamo = async (
   id: number,
   idLector?: number | null,
@@ -171,10 +191,19 @@ export const updatePrestamo = async (
   if (params.toString()) {
     url += `?${params.toString()}`;
   }
-  const response = await axios.put<any>(url);
-  return transformPrestamoData(response.data as PrestamosApiResponseDTO);
+  const response = await axios.put<any>(url); // Respuesta es PrestamosModel
+  const updatedData = response.data;
+  return {
+    idPrestamo: Number(updatedData.idPrestamo),
+    idLector: Number(updatedData.idLector),
+    idBibliotecario: Number(updatedData.idBibliotecario),
+    idEjemplar: Number(updatedData.idEjemplar),
+    fechaPrestamo: formatDateForApi(updatedData.fechaPrestamo) || '',
+    fechaDevolucion: formatDateForApi(updatedData.fechaDevolucion) || '',
+  };
 };
 
+// El controller devuelve PrestamosModel
 export const deletePrestamo = async (id: number): Promise<void> => {
   await axios.delete<any>(`${API_URL}/${id}`);
 };

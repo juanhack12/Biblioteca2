@@ -22,69 +22,81 @@ export interface PersonasModel {
   direccion: string;
 }
 
-// Para reflejar el BibliotecariosDTO del backend
+// Para reflejar el DTO del backend
+export interface EditorialesApiResponseDTO {
+  idEditorial: number;
+  nombre: string;
+  pais: string;
+  ciudad: string;
+  sitioWeb?: string; // Asumiendo que puede ser opcional o nulo desde la API
+}
+
+
+// Modelo del frontend para Editoriales (puede ser igual al DTO si no hay transformaciones)
+export type EditorialesModel = EditorialesApiResponseDTO;
+
+
+// Para reflejar el LibrosDTO del backend
+export interface LibrosApiResponseDTO {
+  idLibro: number;
+  titulo: string;
+  anioPublicacion?: number; // Backend lo tiene como int?
+  idEditorial: number;
+  editoriales?: EditorialesApiResponseDTO; // Objeto anidado
+  nombre?: string; // Nombre de la editorial aplanado
+}
+
+// Modelo del frontend para Libros
+export interface LibrosModel {
+  idLibro: number;
+  titulo: string;
+  anioPublicacion: string; // Frontend lo maneja como string para el input
+  idEditorial: number;
+  nombreEditorial?: string; // Para mostrar el nombre de la editorial
+  editorial?: EditorialesModel; // Opcional, si se quiere el objeto completo
+  isbn?: string;
+  summary?: string;
+}
+
+
 export interface BibliotecariosApiResponseDTO {
   idBibliotecario: number;
   idPersona?: number;
-  personas?: PersonasModel; // El objeto PersonasModel como viene del DTO (PascalCase Personas)
+  personas?: PersonasModel; 
   fechaContratacion?: DateOnlyString;
   turno: string;
-  nombre?: string; // Nombre aplanado desde Personas
-  apellido?: string; // Apellido aplanado desde Personas
-  documentoIdentidad?: string; // Documento aplanado desde Personas
+  nombre?: string; 
+  apellido?: string; 
+  documentoIdentidad?: string; 
 }
 
-// Modelo del frontend para Bibliotecarios
 export interface BibliotecariosModel {
   idBibliotecario: number;
   idPersona?: number;
   fechaContratacion?: DateOnlyString;
   turno: string;
-  nombre?: string; // Campo para UI, llenado desde DTO.Nombre o DTO.Personas.Nombre
-  apellido?: string; // Campo para UI
-  documentoIdentidad?: string; // Campo para UI
-  persona?: PersonasModel; // Opcional, si se quiere acceder al objeto completo
+  nombre?: string; 
+  apellido?: string; 
+  documentoIdentidad?: string; 
+  persona?: PersonasModel; 
 }
 
-export interface EditorialesModel {
-  idEditorial: number;
-  nombre: string;
-  pais: string;
-  ciudad: string;
-  sitioWeb: string;
-}
-
-// LibrosModel del backend NO anida Editorial, solo tiene IdEditorial
-export interface LibrosModel {
-  idLibro: number;
-  titulo: string;
-  anioPublicacion: string; 
-  idEditorial: number; 
-  // No hay 'editorial?: EditorialesModel;' aquí porque el backend no lo envía así para las listas/gets.
-  // El formulario de creación/edición de libros cargará las editoriales por separado para un dropdown.
-  isbn?: string; // Estos pueden ser añadidos por el flujo de IA si se implementa completamente
-  summary?: string; // Estos pueden ser añadidos por el flujo de IA
-}
-
-// Para reflejar el EjemplaresDTO del backend
 export interface EjemplaresApiResponseDTO {
   idEjemplar: number;
   idLibro?: number;
-  libros?: LibrosModel; // El objeto LibrosModel como viene del DTO (PascalCase Libros)
+  libros?: LibrosApiResponseDTO; // Usar el DTO de Libros si es lo que anida
   ubicacion: string;
   titulo?: string; // Titulo aplanado desde Libros.Titulo
 }
 
-// Modelo del frontend para Ejemplares
 export interface EjemplaresModel {
   idEjemplar: number;
   idLibro?: number;
   ubicacion: string;
-  tituloLibro?: string; // Campo para UI, llenado desde DTO.Titulo o DTO.Libros.Titulo
-  libro?: LibrosModel; // Opcional
+  tituloLibro?: string; 
+  libro?: LibrosModel; 
 }
 
-// Para reflejar el LectoresDTO del backend
 export interface LectoresApiResponseDTO {
   idLector: number;
   idPersona?: number;
@@ -96,7 +108,6 @@ export interface LectoresApiResponseDTO {
   documentoIdentidad?: string;
 }
 
-// Modelo del frontend para Lectores
 export interface LectoresModel {
   idLector: number;
   idPersona?: number;
@@ -111,22 +122,23 @@ export interface LectoresModel {
 export interface LibroAutoresModel {
   idLibro: number;
   idAutor: number;
-  rol: string; // El backend usa 'rol' en minúscula
+  rol: string; 
 }
 
 // Para reflejar el PrestamosDTO del backend
 export interface PrestamosApiResponseDTO {
   idPrestamo: number;
   idLector: number;
-  lectores?: LectoresApiResponseDTO; // DTO anidado
+  lectores?: LectoresApiResponseDTO; 
   idBibliotecario: number;
-  bibliotecarios?: BibliotecariosApiResponseDTO; // DTO anidado
+  bibliotecarios?: BibliotecariosApiResponseDTO; 
   idEjemplar: number;
-  ejemplares?: EjemplaresModel; // El backend usa EjemplaresModel aquí, que a su vez tiene LibrosModel
+  ejemplares?: EjemplaresModel; // El backend usa EjemplaresModel (que tiene LibrosModel)
   fechaPrestamo: DateOnlyString;
   fechaDevolucion: DateOnlyString;
   nombreLector?: string;
   nombreBibliotecario?: string;
+  titulo?: string; // Título del libro del ejemplar
 }
 
 // Modelo del frontend para Prestamos
@@ -139,8 +151,7 @@ export interface PrestamosModel {
   fechaDevolucion: DateOnlyString;
   nombreLector?: string;
   nombreBibliotecario?: string;
-  tituloLibroEjemplar?: string;
-  // Opcionalmente, podríamos tener los objetos completos si decidimos mapearlos a fondo
+  tituloLibroEjemplar?: string; // Campo para mostrar el título del libro
   lector?: LectoresModel;
   bibliotecario?: BibliotecariosModel;
   ejemplar?: EjemplaresModel;
@@ -150,7 +161,7 @@ export interface TarifasModel {
   idTarifa: number;
   idPrestamo: number;
   diasRetraso: number;
-  montoTarifa: number; // Backend usa int, frontend lo tratará como number
+  montoTarifa: number; 
 }
 
 // Form Values
@@ -159,8 +170,8 @@ export type BibliotecariosFormValues = Omit<BibliotecariosModel, 'idBibliotecari
 export type EditorialesFormValues = Omit<EditorialesModel, 'idEditorial'>;
 export type EjemplaresFormValues = Omit<EjemplaresModel, 'idEjemplar' | 'libro' | 'tituloLibro'>;
 export type LectoresFormValues = Omit<LectoresModel, 'idLector' | 'persona' | 'nombre' | 'apellido' | 'documentoIdentidad'>;
-export type LibroAutoresFormValues = LibroAutoresModel;
-export type LibrosFormValues = Omit<LibrosModel, 'idLibro' | 'isbn' | 'summary'>;
+export type LibroAutoresFormValues = LibroAutoresModel; // Asumiendo que todos los campos son necesarios en el form
+export type LibrosFormValues = Omit<LibrosModel, 'idLibro' | 'nombreEditorial' | 'editorial' | 'isbn' | 'summary'>;
 export type PersonasFormValues = Omit<PersonasModel, 'idPersona'>;
 export type PrestamosFormValues = Omit<PrestamosModel, 'idPrestamo' | 'lector' | 'bibliotecario' | 'ejemplar' | 'nombreLector' | 'nombreBibliotecario' | 'tituloLibroEjemplar'>;
 export type TarifasFormValues = Omit<TarifasModel, 'idTarifa'>;
