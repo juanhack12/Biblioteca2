@@ -108,6 +108,13 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
+
+  /* Apply accent color and radius to primary buttons */
+  .btn-primary {
+    @apply bg-accent text-accent-foreground rounded-[--radius] hover:bg-accent/90;
+  }
+
+
   code {
     font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
   }

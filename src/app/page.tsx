@@ -34,7 +34,7 @@ function FeatureCard({ icon, title, description, link, linkLabel }: FeatureCardP
         <p className="text-muted-foreground mb-6">{description}</p>
       </CardContent>
       <CardFooter className="justify-center">
-        <Button variant="outline" asChild className="bg-accent hover:bg-accent/90 text-accent-foreground border-accent hover:border-accent/90 rounded-[30px]">
+        <Button size="lg" asChild className="bg-accent hover:bg-accent/90 text-accent-foreground border-accent hover:border-accent/90 text-lg px-8 py-6 rounded-[30px]">
           <Link href={link}>
             {linkLabel} <ArrowRight className="ml-2 h-4 w-4" />
           </Link>
@@ -75,7 +75,7 @@ const recentBooksPlaceholder = [
   { id: 1, title: "El Jardín de las Mariposas", author: "Dot Hutchison", imageUrl: "/images/mpsa.jpg" },
   { id: 2, title: "Fuego y Sangre", author: "George R.R. Martin", imageUrl: "/images/fys.jpg" },
   { id: 3, title: "La Sombra del Viento", author: "Carlos Ruiz Zafón", imageUrl: "/images/lsviento.jpg" },
-  { id: 4, title: "Educated", author: "Tara Westover", imageUrl: "/images/educated.jpg" },
+  { id: 4, title: "Educated", author: "Tara Westover", imageUrl: "/images/educat.jpg" },
 ];
 
 export default function HomePage() {
@@ -152,7 +152,7 @@ export default function HomePage() {
             </CardContent>
           </Card>
         </div>
-        <Button size="lg" asChild className="bg-primary hover:bg-primary/90 text-primary-foreground text-lg px-8 py-6 rounded-[30px]">
+        <Button size="lg" asChild className="bg-accent hover:bg-accent/90 text-accent-foreground border-accent hover:border-accent/90 text-lg px-8 py-6 rounded-[30px]">
           <Link href="/libros">
             Comenzar a Explorar <ArrowRight className="ml-2 h-5 w-5" />
           </Link>
@@ -242,7 +242,7 @@ export default function HomePage() {
           ))}
         </div>
         <div className="mt-12 text-center">
-          <Button variant="secondary" size="lg" asChild>
+          <Button size="lg" asChild className="bg-accent hover:bg-accent/90 text-accent-foreground border-accent hover:border-accent/90 text-lg px-8 py-6 rounded-[30px]">
             <Link href="/libros">
               Ver Catálogo Completo <TrendingUp className="ml-2 h-5 w-5" />
             </Link>

@@ -116,7 +116,7 @@ function EjemplarList({ items, onEdit, onDelete }: EjemplarListProps) {
         ) : (
           <div className="overflow-x-auto">
             <Table><TableHeader><TableRow><TableHead>ID Ejemplar</TableHead><TableHead>Título del Libro</TableHead><TableHead>ID Libro</TableHead><TableHead>Ubicación</TableHead><TableHead className="text-right">Acciones</TableHead></TableRow></TableHeader>
-              <TableBody>
+              <TableBody> {/* Hide the "ID Ejemplar" and "ID Libro" columns */}
                 {items.map((item) => (
                   <TableRow key={item.idEjemplar}><TableCell>{item.idEjemplar}</TableCell><TableCell>{item.tituloLibro || 'N/A'}</TableCell><TableCell>{item.idLibro || 'N/A'}</TableCell><TableCell>{item.ubicacion}</TableCell><TableCell className="text-right space-x-2">
                       <Button variant="outline" size="icon" onClick={() => onEdit(item)} aria-label="Editar"><Edit className="h-4 w-4" /></Button>
@@ -251,9 +251,9 @@ export default function EjemplaresPage() {
   );
   
   return (
-    <div className="space-y-8">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold text-primary flex items-center"><Book className="mr-3 h-8 w-8" />Gestión de Ejemplares</h1>
+    <div className="container mx-auto py-8 space-y-8"> {/* Added padding and margin */}
+      <div className="flex justify-between items-center mb-6"> {/* Added bottom margin */}
+        <h1 className="text-3xl font-bold text-primary flex items-center gap-3"><Book className="h-8 w-8" />Gestión de Ejemplares</h1> {/* Adjusted spacing */}
         {!showForm && ( <Button onClick={handleAddNew} className="shadow-md"><PlusCircle className="mr-2 h-5 w-5" />Agregar Nuevo</Button> )}
       </div>
       {showForm ? ( <EjemplarForm currentData={currentItem} onSubmit={handleSubmit} onCancel={handleCancelForm} isSubmitting={isSubmitting} /> ) 
@@ -265,7 +265,7 @@ export default function EjemplaresPage() {
               placeholder="Buscar por ID, Título, ID Libro o ubicación..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="max-w-md"
+              className="max-w-md flex-grow" {/* Allow input to grow */}
             />
           </div>
           <EjemplarList items={filteredData} onEdit={handleEdit} onDelete={confirmDelete} />

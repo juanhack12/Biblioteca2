@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useEffect, useState, useCallback } from 'react';
-import type { BibliotecariosModel, BibliotecariosFormValues } from '@/lib/types';
+import type { BibliotecariosModel, BibliotecariosFormValues, BibliotecariosApiResponseDTO } from '@/lib/types';
 import { getAllBibliotecarios, createBibliotecario, updateBibliotecario, deleteBibliotecario } from '@/lib/services/bibliotecarios';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -94,7 +94,7 @@ function BibliotecarioForm({ currentData, onSubmit, onCancel, isSubmitting }: Bi
                           variant={"outline"}
                           className={cn("w-full pl-3 text-left font-normal",!field.value && "text-muted-foreground")}
                         >
-                          {field.value ? (format(new Date(field.value), "PPP", { locale: es })) : (<span>Seleccione una fecha</span>)}
+                          {field.value ? (format(new Date(field.value.includes('T') ? field.value : field.value + 'T00:00:00'), "PPP", { locale: es })) : (<span>Seleccione una fecha</span>)}
                           <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                         </Button>
                       </FormControl>
@@ -102,7 +102,7 @@ function BibliotecarioForm({ currentData, onSubmit, onCancel, isSubmitting }: Bi
                     <PopoverContent className="w-auto p-0" align="start">
                       <Calendar
                         mode="single"
-                        selected={field.value ? new Date(field.value) : undefined}
+                        selected={field.value ? new Date(field.value.includes('T') ? field.value : field.value + 'T00:00:00') : undefined}
                         onSelect={(date) => field.onChange(date ? format(date, "yyyy-MM-dd") : undefined)}
                         initialFocus
                       />
@@ -144,11 +144,15 @@ interface BibliotecarioListProps {
 }
 
 function BibliotecarioList({ items, onEdit, onDelete }: BibliotecarioListProps) {
-   const formatDate = (dateString?: string) => {
-    if (!dateString) return 'N/A';
-    const date = new Date(dateString.includes('T') ? dateString : dateString + 'T00:00:00');
+  const formatDate = (dateString?: string): string => {
+    if (!dateString) {
+      return 'N/A';
+    }
+    // Ensure the dateString is treated as UTC if it doesn't have timezone info
+    const date = new Date(dateString.includes('T') ? dateString : `${dateString}T00:00:00`);
     return format(date, 'PPP', { locale: es });
   };
+
   return (
     <Card>
       <CardHeader><CardTitle>Lista de Bibliotecarios</CardTitle></CardHeader>
@@ -157,10 +161,10 @@ function BibliotecarioList({ items, onEdit, onDelete }: BibliotecarioListProps) 
           <p className="text-muted-foreground">No hay bibliotecarios registrados o que coincidan con la búsqueda.</p>
         ) : (
           <div className="overflow-x-auto">
-            <Table><TableHeader><TableRow><TableHead>ID</TableHead><TableHead>Nombre Completo</TableHead><TableHead>Documento</TableHead><TableHead>Fecha Contratación</TableHead><TableHead>Turno</TableHead><TableHead className="text-right">Acciones</TableHead></TableRow></TableHeader>
+            <Table><TableHeader><TableRow><TableHead className="hidden">ID Bibliotecario</TableHead><TableHead>Nombre Completo</TableHead><TableHead>Documento</TableHead><TableHead>Fecha Contratación</TableHead><TableHead>Turno</TableHead><TableHead className="text-right">Acciones</TableHead></TableRow></TableHeader>
               <TableBody>
                 {items.map((item) => (
-                  <TableRow key={item.idBibliotecario}><TableCell>{item.idBibliotecario}</TableCell><TableCell>{item.nombre && item.apellido ? `${item.nombre} ${item.apellido}` : (item.idPersona || 'N/A')}</TableCell><TableCell>{item.documentoIdentidad || 'N/A'}</TableCell><TableCell>{formatDate(item.fechaContratacion)}</TableCell><TableCell>{item.turno}</TableCell><TableCell className="text-right space-x-2">
+                  <TableRow key={item.idBibliotecario}><TableCell className="hidden">{item.idBibliotecario}</TableCell><TableCell>{item.nombre && item.apellido ? `${item.nombre} ${item.apellido}` : (item.idPersona || 'N/A')}</TableCell><TableCell>{item.documentoIdentidad || 'N/A'}</TableCell><TableCell>{formatDate(item.fechaContratacion)}</TableCell><TableCell>{item.turno}</TableCell><TableCell className="text-right space-x-2">
                       <Button variant="outline" size="icon" onClick={() => onEdit(item)} aria-label="Editar"><Edit className="h-4 w-4" /></Button>
                       <Button variant="destructive" size="icon" onClick={() => onDelete(item.idBibliotecario)} aria-label="Eliminar"><Trash2 className="h-4 w-4" /></Button>
                     </TableCell></TableRow>
@@ -198,7 +202,12 @@ export default function BibliotecariosPage() {
       console.error("Error al cargar bibliotecarios (loadData):", err);
       let description = "Error al cargar bibliotecarios.";
       if (axios.isAxiosError(err)) {
-        description = err.response?.data?.message || err.message || "Error de red o servidor.";
+        console.error("Full Axios error object (loadData):", err);
+        console.error("error.message:", err.message);
+        console.error("error.code:", err.code);
+        console.error("error.response?.status:", err.response?.status);
+        console.error("error.response?.data:", err.response?.data);
+        description = err.response?.data?.message || err.response?.data?.error || `Error de red o servidor (Code: ${err.code}, Status: ${err.response?.status}). Verifique que la API (${API_BASE_URL}) esté accesible y configurada correctamente para CORS.`;
       } else if (err instanceof Error) {
         description = err.message;
       }
@@ -221,8 +230,8 @@ export default function BibliotecariosPage() {
     const filtered = data.filter(item => {
       const nombreCompleto = item.nombre && item.apellido ? `${item.nombre} ${item.apellido}`.toLowerCase() : '';
       return (
-        item.idBibliotecario.toString().includes(searchTerm) ||
-        (item.idPersona && item.idPersona.toString().includes(searchTerm)) ||
+        item.idBibliotecario.toString().includes(searchTerm) || 
+        (item.idPersona && item.idPersona.toString().includes(lowercasedFilter)) || 
         nombreCompleto.includes(lowercasedFilter) ||
         (item.documentoIdentidad && item.documentoIdentidad.toLowerCase().includes(lowercasedFilter)) ||
         (item.fechaContratacion && item.fechaContratacion.toLowerCase().includes(lowercasedFilter)) ||
@@ -236,7 +245,7 @@ export default function BibliotecariosPage() {
     setIsSubmitting(true);
     try {
       const coercedData = bibliotecarioSchema.parse(formData); 
-      const idPersonaNum = Number(coercedData.idPersona);
+      const idPersonaNum = Number(coercedData.idPersona); 
       const fechaContratacionToSubmit = coercedData.fechaContratacion || undefined;
 
       if (id) {
@@ -253,16 +262,17 @@ export default function BibliotecariosPage() {
       console.error("Error al guardar bibliotecario (handleSubmit):", err);
       let description = "Error al guardar el bibliotecario.";
       if (err instanceof z.ZodError) {
-        description = err.errors.map(e => e.message).join(', ');
+        description = err.errors.map(e => `${e.path.join('.')}: ${e.message}`).join('; ');
         toast({ title: "Error de Validación", description, variant: "destructive"});
       } else if (axios.isAxiosError(err)) {
-        description = err.response?.data?.message || err.message || "Error de red o servidor.";
+        console.error("Full Axios error object (handleSubmit):", err);
+        description = err.response?.data?.message || err.response?.data?.error || `Error de red o servidor (Code: ${err.code}, Status: ${err.response?.status}).`;
         toast({ title: "Error", description, variant: "destructive" });
       } else if (err instanceof Error) {
         description = err.message;
         toast({ title: "Error", description, variant: "destructive" });
       } else {
-         toast({ title: "Error", description, variant: "destructive" });
+         toast({ title: "Error Desconocido", description, variant: "destructive" });
       }
     } finally {
       setIsSubmitting(false);
@@ -280,7 +290,7 @@ export default function BibliotecariosPage() {
       console.error("Error al eliminar bibliotecario (handleDelete):", err);
       let description = "Error al eliminar bibliotecario.";
        if (axios.isAxiosError(err)) {
-        description = err.response?.data?.message || err.message || "Error de red o servidor.";
+        description = err.response?.data?.message || err.response?.data?.error || `Error de red o servidor (Code: ${err.code}, Status: ${err.response?.status}).`;
       } else if (err instanceof Error) {
         description = err.message;
       }
@@ -320,7 +330,7 @@ export default function BibliotecariosPage() {
   );
 
   return (
-    <div className="space-y-8">
+    <div className="p-6 space-y-8 container mx-auto">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold text-primary flex items-center"><Users className="mr-3 h-8 w-8" />Gestión de Bibliotecarios</h1>
         {!showForm && (
@@ -349,11 +359,18 @@ export default function BibliotecariosPage() {
               className="max-w-md"
             />
           </div>
-          <BibliotecarioList
-            items={filteredData}
-            onEdit={handleEdit}
-            onDelete={confirmDelete}
-          />
+          {loading && data.length === 0 ? (
+             <div className="flex justify-center items-center h-40">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <p className="ml-2 text-muted-foreground">Cargando...</p>
+              </div>
+          ) : (
+            <BibliotecarioList
+              items={filteredData}
+              onEdit={handleEdit}
+              onDelete={confirmDelete}
+            />
+          )}
         </>
       )}
 

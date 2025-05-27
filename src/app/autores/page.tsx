@@ -9,7 +9,7 @@ import { AutorForm } from '@/components/forms/autor-form';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { PlusCircle, Loader2, Search } from 'lucide-react';
+import { PlusCircle, Loader2, Search, Edit, Trash2 } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import axios from 'axios';
 import { API_BASE_URL } from '@/lib/api-config';
@@ -158,8 +158,8 @@ export default function AutoresPage() {
   );
 
   return (
-    <div className="space-y-8">
-      <div className="flex justify-between items-center">
+    <div className="container mx-auto py-8 px-4 sm:px-6 lg:px-8">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <h1 className="text-3xl font-bold text-primary">Gestión de Autores</h1>
         {!showForm && (
           <Button onClick={handleAddNewAutor} className="shadow-md">
@@ -178,20 +178,28 @@ export default function AutoresPage() {
         />
       ) : (
         <>
-          <div className="flex items-center gap-2 mb-4">
-            <Search className="h-5 w-5 text-muted-foreground" />
-            <Input
-              placeholder="Buscar autores por ID, nombre, apellido, fecha o nacionalidad..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="max-w-md"
-            />
+          <div className="bg-card p-6 rounded-lg shadow-sm">
+            <div className="flex items-center gap-3 mb-6">
+              <Search className="h-5 w-5 text-muted-foreground" />
+              <Input
+                placeholder="Buscar autores por nombre, apellido, fecha o nacionalidad..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="flex-grow max-w-sm"
+              />
+            </div>
+            {loading ? (
+              <div className="flex justify-center items-center h-40">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            ) : (
+              <AutorList
+                autores={filteredAutores}
+                onEdit={handleEditAutor}
+                onDelete={confirmDelete}
+              />
+            )}
           </div>
-          <AutorList
-            autores={filteredAutores}
-            onEdit={handleEditAutor}
-            onDelete={confirmDelete}
-          />
         </>
       )}
 

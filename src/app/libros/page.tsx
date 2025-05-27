@@ -130,7 +130,7 @@ function LibroList({ items, onEdit, onDelete }: LibroListProps) {
         ) : (
           <div className="overflow-x-auto">
             <Table><TableHeader><TableRow><TableHead>ID Libro</TableHead><TableHead>Título</TableHead><TableHead>Año Publicación</TableHead><TableHead>ID Editorial</TableHead><TableHead className="text-right">Acciones</TableHead></TableRow></TableHeader>
-              <TableBody>
+              <TableBody className="[&>tr>td:first-child]:hidden [&>tr>th:first-child]:hidden [&>tr>td:nth-child(4)]:hidden [&>tr>th:nth-child(4)]:hidden">
                 {items.map((item) => (
                   <TableRow key={item.idLibro}><TableCell>{item.idLibro}</TableCell><TableCell>{item.titulo}</TableCell><TableCell>{item.anioPublicacion}</TableCell><TableCell>{item.idEditorial ?? 'N/A'}</TableCell><TableCell className="text-right space-x-2">
                       <Button variant="outline" size="icon" onClick={() => onEdit(item)} aria-label="Editar"><Edit className="h-4 w-4" /></Button>
@@ -287,7 +287,7 @@ export default function LibrosPage() {
   );
   
   return (
-    <div className="space-y-8">
+    <div className="container mx-auto py-8 space-y-8">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold text-primary flex items-center"><BookOpen className="mr-3 h-8 w-8" />Gestión de Libros</h1>
         {!showForm && ( <Button onClick={handleAddNew} className="shadow-md"><PlusCircle className="mr-2 h-5 w-5" />Agregar Nuevo</Button> )}

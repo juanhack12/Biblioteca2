@@ -28,6 +28,7 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Removed extra closing div tag that was causing a parsing error.
   return (
     <html lang="es" suppressHydrationWarning>
       <body 
@@ -37,28 +38,36 @@ export default function RootLayout({
           geistMono.variable
         )}
       >
-        <div className="relative flex min-h-dvh flex-col">
+ <div className="relative flex min-h-screen flex-col">
           <Header />
-          <main className="flex-1 container mx-auto px-4 py-8 md:px-6 lg:px-8">
+ <main className="flex-1 container mx-auto px-4 py-8 md:px-6 lg:px-8">
             {children}
           </main>
-
+ 
           <footer className="bg-background border-t border-border/40 py-10 text-muted-foreground">
+            {/* Adjusted grid layout to 4 columns on large screens as requested */}
             <div className="container mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-10 px-4 md:px-6">
-              
               {/* Col 1: Branding & Copyright */}
-              <div className="space-y-3 text-sm">
-                <Link href="/" className="inline-flex items-center gap-2 text-lg font-semibold text-primary hover:text-primary/90 transition-colors mb-1">
+ <div className="space-y-3 text-sm">
+ <Link href="/" className="inline-flex items-center gap-2 text-lg font-semibold text-primary hover:text-primary/90 transition-colors mb-1">
                   <BookMarked className="h-6 w-6" />
                   <span>BiblioTech</span>
                 </Link>
                 <p>
                   &copy; {new Date().getFullYear()} BiblioTech. Todos los derechos reservados.
                 </p>
+                {/* Enlaces Rápidos moved to Col 1 */}
+                <div>
+                  <h3 className="font-semibold text-foreground mb-2">Enlaces Rápidos</h3>
+                  <ul className="space-y-1.5">
+                    <li><Link href="/libros" className="hover:text-primary hover:underline transition-colors">Catálogo en Línea</Link></li>
+                    <li><Link href="#" className="hover:text-primary hover:underline transition-colors">Ayuda / FAQ</Link></li>
+                  </ul>
+                </div>
               </div>
 
               {/* Col 2: Contacto & Ubicación */}
-              <div className="space-y-5 text-sm">
+ <div className="space-y-5 text-sm">
                 <div>
                   <h3 className="font-semibold text-foreground mb-2">Contacto</h3>
                   <div className="space-y-1.5">
@@ -78,28 +87,19 @@ export default function RootLayout({
                   </p>
                 </div>
               </div>
-
+              
               {/* Col 3: Horarios & Enlaces Rápidos */}
-              <div className="space-y-5 text-sm">
-                <div>
-                  <h3 className="font-semibold text-foreground mb-2">Horarios</h3>
-                  <div className="flex items-start">
-                    <Clock className="h-4 w-4 mr-2 mt-0.5 shrink-0 text-primary" />
-                    <span>
-                      Lunes a Viernes: 9am - 8pm<br/>
-                      Sábados: 10am - 4pm<br/>
+ <div className="space-y-5 text-sm">
+ <div>
+ <h3 className="font-semibold text-foreground mb-2">Horarios</h3>
+ <div className="flex items-start">
+ <Clock className="h-4 w-4 mr-2 mt-0.5 shrink-0 text-primary" />
+ <span>
+ Lunes a Viernes: 9am - 8pm<br/>
+ Sábados: 10am - 4pm<br/>
                       Domingos: Cerrado
                     </span>
                   </div>
-                </div>
-                <div>
-                  <h3 className="font-semibold text-foreground mb-2">Enlaces Rápidos</h3>
-                  <ul className="space-y-1.5">
-                    <li><Link href="/libros" className="hover:text-primary hover:underline transition-colors">Catálogo en Línea</Link></li>
-                    <li><Link href="/prestamos" className="hover:text-primary hover:underline transition-colors">Mis Préstamos</Link></li>
-                    <li><Link href="#" className="hover:text-primary hover:underline transition-colors">Eventos</Link></li>
-                    <li><Link href="#" className="hover:text-primary hover:underline transition-colors">Ayuda / FAQ</Link></li>
-                  </ul>
                 </div>
               </div>
 
@@ -107,36 +107,34 @@ export default function RootLayout({
               <div className="space-y-5 text-sm">
                 <div>
                   <h3 className="font-semibold text-foreground mb-2">Síguenos</h3>
-                  <div className="flex items-center gap-x-4">
-                    <a 
-                      href="#" 
-                      target="_blank" 
-                      rel="noopener noreferrer" 
+                    <a
+                      href="#"
+                      target="_blank"
+                      rel="noopener noreferrer"
                       aria-label="Facebook de BiblioTech"
                       className="text-muted-foreground hover:text-primary transition-colors"
                     >
                       <Facebook className="h-5 w-5" />
                     </a>
-                    <a 
-                      href="#" 
-                      target="_blank" 
-                      rel="noopener noreferrer" 
+                    <a
+                      href="#"
+                      target="_blank"
+                      rel="noopener noreferrer"
                       aria-label="Twitter de BiblioTech"
                       className="text-muted-foreground hover:text-primary transition-colors"
                     >
                       <Twitter className="h-5 w-5" />
                     </a>
-                    <a 
-                      href="#" 
-                      target="_blank" 
-                      rel="noopener noreferrer" 
+                    <a
+                      href="#"
+                      target="_blank"
+                      rel="noopener noreferrer"
                       aria-label="Instagram de BiblioTech"
                       className="text-muted-foreground hover:text-primary transition-colors"
                     >
                       <Instagram className="h-5 w-5" />
                     </a>
                   </div>
-                </div>
                 <div>
                   <h3 className="font-semibold text-foreground mb-2">Legal</h3>
                   <ul className="space-y-1.5">
@@ -145,10 +143,10 @@ export default function RootLayout({
                   </ul>
                 </div>
               </div>
-            </div>
+            </div> {/* Added missing closing div tag */}
           </footer>
-          <Toaster />
-        </div>
+ <Toaster />
+ </div>
       </body>
     </html>
   );

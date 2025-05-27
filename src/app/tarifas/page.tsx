@@ -88,8 +88,7 @@ function TarifaList({ items, onEdit, onDelete }: TarifaListProps) {
         ) : (
           <div className="overflow-x-auto">
             <Table><TableHeader><TableRow><TableHead>ID Tarifa</TableHead><TableHead>ID Préstamo</TableHead><TableHead>Días Retraso</TableHead><TableHead>Monto Tarifa</TableHead><TableHead className="text-right">Acciones</TableHead></TableRow></TableHeader>
-              <TableBody>
-                {items.map((item) => (
+              <TableBody>                {items.map((item) => (
                   <TableRow key={item.idTarifa}><TableCell>{item.idTarifa}</TableCell><TableCell>{item.idPrestamo}</TableCell><TableCell>{item.diasRetraso}</TableCell><TableCell>{item.montoTarifa.toFixed(2)}</TableCell><TableCell className="text-right space-x-2">
                       <Button variant="outline" size="icon" onClick={() => onEdit(item)} aria-label="Editar"><Edit className="h-4 w-4" /></Button>
                       <Button variant="destructive" size="icon" onClick={() => onDelete(item.idTarifa)} aria-label="Eliminar"><Trash2 className="h-4 w-4" /></Button>
@@ -204,7 +203,7 @@ export default function TarifasPage() {
   );
   
   return (
-    <div className="space-y-8">
+    <div className="container mx-auto py-8 px-4 space-y-8">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold text-primary flex items-center"><CircleDollarSign className="mr-3 h-8 w-8" />Gestión de Tarifas</h1>
         {!showForm && ( <Button onClick={handleAddNew} className="shadow-md"><PlusCircle className="mr-2 h-5 w-5" />Agregar Nueva</Button> )}

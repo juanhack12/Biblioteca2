@@ -96,7 +96,7 @@ function LibroAutorList({ items, onEdit, onDelete }: LibroAutorListProps) {
         ) : (
           <div className="overflow-x-auto">
             <Table><TableHeader><TableRow><TableHead>ID Libro</TableHead><TableHead>ID Autor</TableHead><TableHead>Rol</TableHead><TableHead className="text-right">Acciones</TableHead></TableRow></TableHeader>
-              <TableBody>
+ <TableBody>
                 {items.map((item) => (
                   <TableRow key={`${item.idLibro}-${item.idAutor}`}><TableCell>{item.idLibro}</TableCell><TableCell>{item.idAutor}</TableCell><TableCell>{item.rol}</TableCell><TableCell className="text-right space-x-2">
                       <Button variant="outline" size="icon" onClick={() => onEdit(item)} aria-label="Editar"><Edit className="h-4 w-4" /></Button>
@@ -208,7 +208,7 @@ export default function LibroAutoresPage() {
     </div>
   );
   
-  return (
+ return (
     <div className="space-y-8">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold text-primary flex items-center"><Combine className="mr-3 h-8 w-8" />Gestión de Relaciones Libro-Autor</h1>
@@ -226,7 +226,7 @@ export default function LibroAutoresPage() {
               className="max-w-md"
             />
           </div>
-          <LibroAutorList items={filteredData} onEdit={handleEdit} onDelete={confirmDelete} />
+ <LibroAutorList items={filteredData} onEdit={handleEdit} onDelete={confirmDelete} />
         </>
       )}
       <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>

@@ -88,7 +88,7 @@ function EditorialList({ items, onEdit, onDelete }: EditorialListProps) {
         ) : (
           <div className="overflow-x-auto">
             <Table><TableHeader><TableRow><TableHead>ID</TableHead><TableHead>Nombre</TableHead><TableHead>País</TableHead><TableHead>Ciudad</TableHead><TableHead>Sitio Web</TableHead><TableHead className="text-right">Acciones</TableHead></TableRow></TableHeader>
-              <TableBody>
+ <TableBody>
                 {items.map((item) => (
                   <TableRow key={item.idEditorial}><TableCell>{item.idEditorial}</TableCell><TableCell>{item.nombre}</TableCell><TableCell>{item.pais}</TableCell><TableCell>{item.ciudad}</TableCell><TableCell><a href={item.sitioWeb} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{item.sitioWeb}</a></TableCell><TableCell className="text-right space-x-2">
                       <Button variant="outline" size="icon" onClick={() => onEdit(item)} aria-label="Editar"><Edit className="h-4 w-4" /></Button>
@@ -200,8 +200,8 @@ export default function EditorialesPage() {
   );
   
   return (
-    <div className="space-y-8">
-      <div className="flex justify-between items-center">
+    <div className="container mx-auto py-8 px-4 space-y-8">
+      <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold text-primary flex items-center"><Library className="mr-3 h-8 w-8" />Gestión de Editoriales</h1>
         {!showForm && ( <Button onClick={handleAddNew} className="shadow-md"><PlusCircle className="mr-2 h-5 w-5" />Agregar Nueva</Button> )}
       </div>

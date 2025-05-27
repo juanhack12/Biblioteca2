@@ -116,7 +116,7 @@ function PrestamoList({ items, onEdit, onDelete }: PrestamoListProps) {
             <Table><TableHeader><TableRow><TableHead>ID</TableHead><TableHead>Lector</TableHead><TableHead>Bibliotecario</TableHead><TableHead>Título Libro</TableHead><TableHead>ID Ejemplar</TableHead><TableHead>F. Préstamo</TableHead><TableHead>F. Devolución</TableHead><TableHead className="text-right">Acciones</TableHead></TableRow></TableHeader>
               <TableBody>
                 {items.map((item) => (
-                  <TableRow key={item.idPrestamo}><TableCell>{item.idPrestamo}</TableCell><TableCell>{item.nombreLector || `ID: ${item.idLector}`}</TableCell><TableCell>{item.nombreBibliotecario || `ID: ${item.idBibliotecario}`}</TableCell><TableCell>{item.tituloLibroEjemplar || 'N/A'}</TableCell><TableCell>{item.idEjemplar}</TableCell><TableCell>{formatDate(item.fechaPrestamo)}</TableCell><TableCell>{formatDate(item.fechaDevolucion)}</TableCell><TableCell className="text-right space-x-2">
+                  <TableRow key={item.idPrestamo}><TableCell className="hidden">{item.idPrestamo}</TableCell><TableCell>{item.nombreLector || `ID: ${item.idLector}`}</TableCell><TableCell>{item.nombreBibliotecario || `ID: ${item.idBibliotecario}`}</TableCell><TableCell>{item.tituloLibroEjemplar || 'N/A'}</TableCell><TableCell className="hidden">{item.idEjemplar}</TableCell><TableCell>{formatDate(item.fechaPrestamo)}</TableCell><TableCell>{formatDate(item.fechaDevolucion)}</TableCell><TableCell className="text-right space-x-2">
                       <Button variant="outline" size="icon" onClick={() => onEdit(item)} aria-label="Editar"><Edit className="h-4 w-4" /></Button>
                       <Button variant="destructive" size="icon" onClick={() => onDelete(item.idPrestamo)} aria-label="Eliminar"><Trash2 className="h-4 w-4" /></Button>
                     </TableCell></TableRow>
@@ -262,7 +262,7 @@ export default function PrestamosPage() {
   );
   
   return (
-    <div className="space-y-8">
+    <div className="container mx-auto py-8 px-4 space-y-8">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold text-primary flex items-center"><ArrowRightLeft className="mr-3 h-8 w-8" />Gestión de Préstamos</h1>
         {!showForm && ( <Button onClick={handleAddNew} className="shadow-md"><PlusCircle className="mr-2 h-5 w-5" />Agregar Nuevo</Button> )}
