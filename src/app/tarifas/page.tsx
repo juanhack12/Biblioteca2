@@ -4,7 +4,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import type { TarifasModel, TarifasFormValues, PrestamosModel } from '@/lib/types';
 import { getAllTarifas, createTarifa, updateTarifa, deleteTarifa } from '@/lib/services/tarifas';
-import { getAllPrestamos } from '@/lib/services/prestamos'; // Importar servicio de prestamos
+import { getAllPrestamos } from '@/lib/services/prestamos';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -19,6 +19,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { tarifaSchema } from '@/lib/schemas';
 import { z } from 'zod';
 import axios from 'axios';
+import { API_BASE_URL } from '@/lib/api-config';
 
 // TarifaForm Component
 interface TarifaFormProps {
@@ -26,7 +27,7 @@ interface TarifaFormProps {
   onSubmit: (data: TarifasFormValues, id?: number) => Promise<void>;
   onCancel: () => void;
   isSubmitting: boolean;
-  prestamos: PrestamosModel[]; // Lista de prestamos para el selector
+  prestamos: PrestamosModel[];
 }
 
 function TarifaForm({ currentData, onSubmit, onCancel, isSubmitting, prestamos }: TarifaFormProps) {
@@ -70,7 +71,7 @@ function TarifaForm({ currentData, onSubmit, onCancel, isSubmitting, prestamos }
                   <SelectContent>
                     {prestamos.map((prestamo) => (
                       <SelectItem key={prestamo.idPrestamo} value={prestamo.idPrestamo.toString()}>
-                        ID: {prestamo.idPrestamo} - Lector: {prestamo.nombreLector || prestamo.idLector} - Libro: {prestamo.tituloLibroEjemplar || prestamo.idEjemplar}
+                        {`Lector: ${prestamo.nombreLector || prestamo.idLector} - Libro: ${prestamo.tituloLibroEjemplar || prestamo.idEjemplar}`}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -93,20 +94,18 @@ interface TarifaListProps {
   items: TarifasModel[];
   onEdit: (item: TarifasModel) => void;
   onDelete: (id: number) => void;
-  prestamos: PrestamosModel[]; // Para poder mostrar info del préstamo
+  prestamos: PrestamosModel[];
 }
 
 function TarifaList({ items, onEdit, onDelete, prestamos }: TarifaListProps) {
   const getPrestamoInfo = (idPrestamo: number) => {
     const prestamo = prestamos.find(p => p.idPrestamo === idPrestamo);
     if (!prestamo) return `ID Préstamo: ${idPrestamo}`;
-    return `ID: ${idPrestamo} (Lector: ${prestamo.nombreLector || prestamo.idLector}, Libro: ${prestamo.tituloLibroEjemplar || prestamo.idEjemplar})`;
+    return `Lector: ${prestamo.nombreLector || prestamo.idLector}, Libro: ${prestamo.tituloLibroEjemplar || `Ejemplar ID: ${prestamo.idEjemplar}`}`;
   };
 
   return (
-    <Card>
-      <CardHeader><CardTitle>Lista de Tarifas</CardTitle></CardHeader>
-      <CardContent>
+    <Card><CardHeader><CardTitle>Lista de Tarifas</CardTitle></CardHeader><CardContent>
         {items.length === 0 ? (
           <p className="text-muted-foreground">No hay tarifas registradas o que coincidan con la búsqueda.</p>
         ) : (
@@ -122,9 +121,7 @@ function TarifaList({ items, onEdit, onDelete, prestamos }: TarifaListProps) {
               </TableBody>
             </Table>
           </div>
-        )}
-      </CardContent>
-    </Card>
+        )}</CardContent></Card>
   );
 }
 
@@ -132,7 +129,7 @@ function TarifaList({ items, onEdit, onDelete, prestamos }: TarifaListProps) {
 export default function TarifasPage() {
   const [data, setData] = useState<TarifasModel[]>([]);
   const [filteredData, setFilteredData] = useState<TarifasModel[]>([]);
-  const [prestamos, setPrestamos] = useState<PrestamosModel[]>([]); // Estado para prestamos
+  const [prestamos, setPrestamos] = useState<PrestamosModel[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [currentItem, setCurrentItem] = useState<TarifasModel | null>(null);
@@ -147,14 +144,20 @@ export default function TarifasPage() {
     try {
       const [tarifasResult, prestamosResult] = await Promise.all([
         getAllTarifas(),
-        getAllPrestamos() // Cargar prestamos
+        getAllPrestamos()
       ]);
       setData(tarifasResult);
       setFilteredData(tarifasResult);
       setPrestamos(prestamosResult);
     } catch (err: any) {
-      toast({ title: "Error", description: "Error al cargar datos iniciales.", variant: "destructive" });
-      console.error("Error en loadData (TarifasPage):", err);
+      console.error("Error al cargar datos (TarifasPage):", err);
+      let description = "Error al cargar datos iniciales.";
+      if (axios.isAxiosError(err)) {
+        description = err.response?.data?.message || err.response?.data?.error?.message || err.message || "Error de red o servidor.";
+      } else if (err instanceof Error) {
+        description = err.message;
+      }
+      toast({ title: "Error", description, variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -169,9 +172,9 @@ export default function TarifasPage() {
     }
     const lowercasedFilter = searchTerm.toLowerCase(); 
     const filtered = data.filter(item => {
-      const prestamoRelacionado = prestamos.find(p => p.idPrestamo === item.idPrestamo);
-      const infoPrestamo = prestamoRelacionado ? 
-        `ID: ${item.idPrestamo} Lector: ${prestamoRelacionado.nombreLector || prestamoRelacionado.idLector} Libro: ${prestamoRelacionado.tituloLibroEjemplar || prestamoRelacionado.idEjemplar}`.toLowerCase()
+      const prestamoAsociado = prestamos.find(p => p.idPrestamo === item.idPrestamo);
+      const infoPrestamo = prestamoAsociado ? 
+        `Lector: ${prestamoAsociado.nombreLector || prestamoAsociado.idLector} Libro: ${prestamoAsociado.tituloLibroEjemplar || `Ejemplar ID: ${prestamoAsociado.idEjemplar}`}`.toLowerCase()
         : `ID Préstamo: ${item.idPrestamo}`.toLowerCase();
 
       return (
@@ -192,23 +195,23 @@ export default function TarifasPage() {
       const coercedData = tarifaSchema.parse(formData);
 
       if (id) {
-        await updateTarifa(id, Number(coercedData.idPrestamo), Number(coercedData.diasRetraso), Number(coercedData.montoTarifa));
+        await updateTarifa(id, coercedData.idPrestamo, coercedData.diasRetraso, coercedData.montoTarifa);
         toast({ title: "Éxito", description: "Tarifa actualizada." });
       } else {
-        await createTarifa(Number(coercedData.idPrestamo), Number(coercedData.diasRetraso), Number(coercedData.montoTarifa));
+        await createTarifa(coercedData.idPrestamo, coercedData.diasRetraso, coercedData.montoTarifa);
         toast({ title: "Éxito", description: "Tarifa creada." });
       }
       setShowForm(false); setCurrentItem(null); loadData();
     } catch (err: any) {
+      console.error("Error en handleSubmit (Tarifas):", err);
       if (err instanceof z.ZodError) {
         toast({ title: "Error de Validación", description: err.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', '), variant: "destructive"});
       } else if (axios.isAxiosError(err)) {
-        toast({ title: "Error", description: err.response?.data?.message || err.response?.data?.error?.message || err.message || "Error de red o servidor.", variant: "destructive" });
-      }
-       else {
+        const errData = err.response?.data;
+        toast({ title: "Error", description: errData?.message || errData?.error?.message || err.message || "Error de red o servidor.", variant: "destructive" });
+      } else {
         toast({ title: "Error", description: (err as Error).message || "Error al guardar la tarifa.", variant: "destructive" });
       }
-      console.error("Error en handleSubmit (Tarifas):", err);
     } finally {
       setIsSubmitting(false);
     }
@@ -224,7 +227,8 @@ export default function TarifasPage() {
     } catch (err: any) {
       let description = "Error al eliminar tarifa.";
       if (axios.isAxiosError(err)) {
-        description = err.response?.data?.message || err.response?.data?.error?.message || err.message || "Error de red o servidor.";
+        const errData = err.response?.data;
+        description = errData?.message || errData?.error?.message || err.message || "Error de red o servidor.";
       } else if (err instanceof Error) {
         description = err.message;
       }
@@ -269,10 +273,7 @@ export default function TarifasPage() {
         </>
       )}
       <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
-        <AlertDialogContent>
-          <AlertDialogHeader><AlertDialogTitle>¿Confirmar eliminación?</AlertDialogTitle><AlertDialogDescription>Esta acción no se puede deshacer. ¿Seguro que quieres eliminar esta tarifa?</AlertDialogDescription></AlertDialogHeader>
-          <AlertDialogFooter><AlertDialogCancel onClick={() => setShowDeleteConfirm(false)} disabled={isSubmitting}>Cancelar</AlertDialogCancel><AlertDialogAction onClick={handleDelete} disabled={isSubmitting} className="bg-destructive hover:bg-destructive/90">{isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}Eliminar</AlertDialogAction></AlertDialogFooter>
-        </AlertDialogContent>
+        <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>¿Confirmar eliminación?</AlertDialogTitle><AlertDialogDescription>Esta acción no se puede deshacer. ¿Seguro que quieres eliminar esta tarifa?</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel onClick={() => setShowDeleteConfirm(false)} disabled={isSubmitting}>Cancelar</AlertDialogCancel><AlertDialogAction onClick={handleDelete} disabled={isSubmitting} className="bg-destructive hover:bg-destructive/90">{isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}Eliminar</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
       </AlertDialog>
     </div>
   );

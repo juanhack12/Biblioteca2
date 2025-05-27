@@ -4,7 +4,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import type { EjemplaresModel, EjemplaresFormValues, LibrosModel } from '@/lib/types';
 import { getAllEjemplares, createEjemplar, updateEjemplar, deleteEjemplar } from '@/lib/services/ejemplares';
-import { getAllLibros } from '@/lib/services/libros'; // Importar servicio de libros
+import { getAllLibros } from '@/lib/services/libros';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -19,6 +19,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { ejemplarSchema } from '@/lib/schemas';
 import { z } from 'zod'; 
 import axios from 'axios';
+import { API_BASE_URL } from '@/lib/api-config';
 
 // EjemplarForm Component
 interface EjemplarFormProps {
@@ -26,7 +27,7 @@ interface EjemplarFormProps {
   onSubmit: (data: EjemplaresFormValues, id?: number) => Promise<void>;
   onCancel: () => void;
   isSubmitting: boolean;
-  libros: LibrosModel[]; // Lista de libros para el selector
+  libros: LibrosModel[];
 }
 
 function EjemplarForm({ currentData, onSubmit, onCancel, isSubmitting, libros }: EjemplarFormProps) {
@@ -81,7 +82,7 @@ function EjemplarForm({ currentData, onSubmit, onCancel, isSubmitting, libros }:
                     <SelectContent>
                       {libros.map((libro) => (
                         <SelectItem key={libro.idLibro} value={libro.idLibro.toString()}>
-                          {libro.titulo} (ID: {libro.idLibro})
+                          {libro.titulo}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -129,9 +130,7 @@ interface EjemplarListProps {
 
 function EjemplarList({ items, onEdit, onDelete }: EjemplarListProps) {
   return (
-    <Card className="shadow-md rounded-lg">
-      <CardHeader><CardTitle className="text-xl font-semibold text-primary">Lista de Ejemplares</CardTitle></CardHeader>
-      <CardContent>
+    <Card className="shadow-md rounded-lg"><CardHeader><CardTitle className="text-xl font-semibold text-primary">Lista de Ejemplares</CardTitle></CardHeader><CardContent>
         {items.length === 0 ? (
           <p className="text-muted-foreground text-center py-4">No hay ejemplares registrados o que coincidan con la búsqueda.</p>
         ) : (
@@ -147,9 +146,7 @@ function EjemplarList({ items, onEdit, onDelete }: EjemplarListProps) {
               </TableBody>
             </Table>
           </div>
-        )}
-      </CardContent>
-    </Card>
+        )}</CardContent></Card>
   );
 }
 
@@ -157,7 +154,7 @@ function EjemplarList({ items, onEdit, onDelete }: EjemplarListProps) {
 export default function EjemplaresPage() {
   const [data, setData] = useState<EjemplaresModel[]>([]);
   const [filteredData, setFilteredData] = useState<EjemplaresModel[]>([]);
-  const [libros, setLibros] = useState<LibrosModel[]>([]); // Estado para libros
+  const [libros, setLibros] = useState<LibrosModel[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [currentItem, setCurrentItem] = useState<EjemplaresModel | null>(null);
@@ -172,7 +169,7 @@ export default function EjemplaresPage() {
     try {
       const [ejemplaresResult, librosResult] = await Promise.all([
         getAllEjemplares(),
-        getAllLibros() // Cargar libros
+        getAllLibros()
       ]);
       setData(ejemplaresResult);
       setFilteredData(ejemplaresResult); 
@@ -181,7 +178,7 @@ export default function EjemplaresPage() {
       console.error("Error al cargar datos (EjemplaresPage):", err);
       let description = "Error al cargar datos iniciales.";
       if (axios.isAxiosError(err)) {
-        description = err.response?.data?.message || err.message || "Error de red o servidor.";
+        description = err.response?.data?.message || err.response?.data?.error?.message || err.message || "Error de red o servidor.";
       } else if (err instanceof Error) {
         description = err.message;
       }
@@ -216,12 +213,11 @@ export default function EjemplaresPage() {
     setIsSubmitting(true);
     try {
       const coercedData = ejemplarSchema.parse(formData);
-      const idLibroNum = Number(coercedData.idLibro); 
       if (id) {
-        await updateEjemplar(id, idLibroNum, coercedData.ubicacion);
+        await updateEjemplar(id, coercedData.idLibro, coercedData.ubicacion);
         toast({ title: "Éxito", description: "Ejemplar actualizado." });
       } else {
-        await createEjemplar(idLibroNum, coercedData.ubicacion);
+        await createEjemplar(coercedData.idLibro, coercedData.ubicacion);
         toast({ title: "Éxito", description: "Ejemplar creado." });
       }
       setShowForm(false); 
@@ -306,10 +302,7 @@ export default function EjemplaresPage() {
         </>
       )}
       <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
-        <AlertDialogContent>
-          <AlertDialogHeader><AlertDialogTitle>¿Confirmar eliminación?</AlertDialogTitle><AlertDialogDescription>Esta acción no se puede deshacer. ¿Seguro que quieres eliminar este ejemplar?</AlertDialogDescription></AlertDialogHeader>
-          <AlertDialogFooter><AlertDialogCancel onClick={() => setShowDeleteConfirm(false)} disabled={isSubmitting}>Cancelar</AlertDialogCancel><AlertDialogAction onClick={handleDelete} disabled={isSubmitting} className="bg-destructive hover:bg-destructive/90">{isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}Eliminar</AlertDialogAction></AlertDialogFooter>
-        </AlertDialogContent>
+        <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>¿Confirmar eliminación?</AlertDialogTitle><AlertDialogDescription>Esta acción no se puede deshacer. ¿Seguro que quieres eliminar este ejemplar?</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel onClick={() => setShowDeleteConfirm(false)} disabled={isSubmitting}>Cancelar</AlertDialogCancel><AlertDialogAction onClick={handleDelete} disabled={isSubmitting} className="bg-destructive hover:bg-destructive/90">{isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}Eliminar</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
       </AlertDialog>
     </div>
   );

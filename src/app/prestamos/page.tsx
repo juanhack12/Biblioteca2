@@ -26,6 +26,7 @@ import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { z } from 'zod';
 import axios from 'axios';
+import { API_BASE_URL } from '@/lib/api-config';
 
 // PrestamoForm Component
 interface PrestamoFormProps {
@@ -93,7 +94,7 @@ function PrestamoForm({ currentData, onSubmit, onCancel, isSubmitting, lectores,
                   <SelectContent>
                     {lectores.map((lector) => (
                       <SelectItem key={lector.idLector} value={lector.idLector.toString()}>
-                        {lector.nombre} {lector.apellido} (ID: {lector.idLector})
+                        {`${lector.nombre || ''} ${lector.apellido || ''}`.trim()}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -107,7 +108,7 @@ function PrestamoForm({ currentData, onSubmit, onCancel, isSubmitting, lectores,
                   <SelectContent>
                     {bibliotecarios.map((bibliotecario) => (
                       <SelectItem key={bibliotecario.idBibliotecario} value={bibliotecario.idBibliotecario.toString()}>
-                        {bibliotecario.nombre} {bibliotecario.apellido} (ID: {bibliotecario.idBibliotecario})
+                        {`${bibliotecario.nombre || ''} ${bibliotecario.apellido || ''}`.trim()}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -121,7 +122,7 @@ function PrestamoForm({ currentData, onSubmit, onCancel, isSubmitting, lectores,
                   <SelectContent>
                     {ejemplares.map((ejemplar) => (
                       <SelectItem key={ejemplar.idEjemplar} value={ejemplar.idEjemplar.toString()}>
-                        {ejemplar.tituloLibro} (ID Ejemplar: {ejemplar.idEjemplar})
+                        {ejemplar.tituloLibro || `Ejemplar ID: ${ejemplar.idEjemplar}`}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -158,6 +159,7 @@ function PrestamoList({ items, onEdit, onDelete }: PrestamoListProps) {
   const formatDateForDisplay = (dateString?: string) => {
     if (!dateString) return 'N/A';
     try {
+      // Ensure date is treated as UTC if no timezone info is present
       const date = new Date(dateString.includes('T') ? dateString : `${dateString}T00:00:00Z`);
       return format(date, 'PPP', { locale: es });
     } catch (e) {
@@ -165,9 +167,7 @@ function PrestamoList({ items, onEdit, onDelete }: PrestamoListProps) {
     }
   };
   return (
-    <Card>
-      <CardHeader><CardTitle>Lista de Préstamos</CardTitle></CardHeader>
-      <CardContent>
+    <Card><CardHeader><CardTitle>Lista de Préstamos</CardTitle></CardHeader><CardContent>
         {items.length === 0 ? (
           <p className="text-muted-foreground">No hay préstamos registrados o que coincidan con la búsqueda.</p>
         ) : (
@@ -183,9 +183,7 @@ function PrestamoList({ items, onEdit, onDelete }: PrestamoListProps) {
               </TableBody>
             </Table>
           </div>
-        )}
-      </CardContent>
-    </Card>
+        )}</CardContent></Card>
   );
 }
 
@@ -223,7 +221,7 @@ export default function PrestamosPage() {
       console.error("Error al cargar datos (PrestamosPage):", err);
       let description = "Error al cargar datos iniciales.";
       if (axios.isAxiosError(err)) {
-        description = err.response?.data?.message || err.message || "Error de red o servidor.";
+        description = err.response?.data?.message || err.response?.data?.error?.message || err.message || "Error de red o servidor.";
       } else if (err instanceof Error) {
         description = err.message;
       }
@@ -263,21 +261,22 @@ export default function PrestamosPage() {
       const coercedData = prestamoSchema.parse(formData);
       
       if (id) {
-        await updatePrestamo(id, Number(coercedData.idLector), Number(coercedData.idBibliotecario), Number(coercedData.idEjemplar), coercedData.fechaPrestamo, coercedData.fechaDevolucion);
+        await updatePrestamo(id, coercedData.idLector, coercedData.idBibliotecario, coercedData.idEjemplar, coercedData.fechaPrestamo, coercedData.fechaDevolucion);
         toast({ title: "Éxito", description: "Préstamo actualizado." });
       } else {
-        await createPrestamo(Number(coercedData.idLector), Number(coercedData.idBibliotecario), Number(coercedData.idEjemplar), coercedData.fechaPrestamo, coercedData.fechaDevolucion);
+        await createPrestamo(coercedData.idLector, coercedData.idBibliotecario, coercedData.idEjemplar, coercedData.fechaPrestamo, coercedData.fechaDevolucion);
         toast({ title: "Éxito", description: "Préstamo creado." });
       }
       setShowForm(false); setCurrentItem(null); loadData();
     } catch (err: any) {
-       console.error("Error al guardar préstamo (handleSubmit):", err);
+      console.error("Error al guardar préstamo (handleSubmit):", err);
       let description = "Error al guardar el préstamo.";
       if (err instanceof z.ZodError) {
         description = err.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ');
         toast({ title: "Error de Validación", description, variant: "destructive"});
       } else if (axios.isAxiosError(err)) {
-        description = err.response?.data?.message || err.response?.data?.error?.message || err.message || "Error de red o servidor.";
+        const errData = err.response?.data;
+        description = errData?.message || errData?.error?.message || err.message || "Error de red o servidor.";
         toast({ title: "Error", description, variant: "destructive" });
       } else if (err instanceof Error) {
         description = err.message;
@@ -301,7 +300,8 @@ export default function PrestamosPage() {
       console.error("Error al eliminar préstamo (handleDelete):", err);
       let description = "Error al eliminar préstamo.";
       if (axios.isAxiosError(err)) {
-        description = err.response?.data?.message || err.response?.data?.error?.message || err.message || "Error de red o servidor.";
+        const errData = err.response?.data;
+        description = errData?.message || errData?.error?.message || err.message || "Error de red o servidor.";
       } else if (err instanceof Error) {
         description = err.message;
       }
@@ -345,10 +345,7 @@ export default function PrestamosPage() {
         </>
       )}
       <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
-        <AlertDialogContent>
-          <AlertDialogHeader><AlertDialogTitle>¿Confirmar eliminación?</AlertDialogTitle><AlertDialogDescription>Esta acción no se puede deshacer. ¿Seguro que quieres eliminar este préstamo?</AlertDialogDescription></AlertDialogHeader>
-          <AlertDialogFooter><AlertDialogCancel onClick={() => setShowDeleteConfirm(false)} disabled={isSubmitting}>Cancelar</AlertDialogCancel><AlertDialogAction onClick={handleDelete} disabled={isSubmitting} className="bg-destructive hover:bg-destructive/90">{isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}Eliminar</AlertDialogAction></AlertDialogFooter>
-        </AlertDialogContent>
+        <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>¿Confirmar eliminación?</AlertDialogTitle><AlertDialogDescription>Esta acción no se puede deshacer. ¿Seguro que quieres eliminar este préstamo?</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel onClick={() => setShowDeleteConfirm(false)} disabled={isSubmitting}>Cancelar</AlertDialogCancel><AlertDialogAction onClick={handleDelete} disabled={isSubmitting} className="bg-destructive hover:bg-destructive/90">{isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}Eliminar</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
       </AlertDialog>
     </div>
   );

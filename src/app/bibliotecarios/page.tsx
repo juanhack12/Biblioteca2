@@ -4,7 +4,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import type { BibliotecariosModel, BibliotecariosFormValues, PersonasModel } from '@/lib/types';
 import { getAllBibliotecarios, createBibliotecario, updateBibliotecario, deleteBibliotecario } from '@/lib/services/bibliotecarios';
-import { getAllPersonas } from '@/lib/services/personas'; // Importar servicio de personas
+import { getAllPersonas } from '@/lib/services/personas';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -32,7 +32,7 @@ interface BibliotecarioFormProps {
   onSubmit: (data: BibliotecariosFormValues, id?: number) => Promise<void>;
   onCancel: () => void;
   isSubmitting: boolean;
-  personas: PersonasModel[]; // Lista de personas para el selector
+  personas: PersonasModel[];
 }
 
 function BibliotecarioForm({ currentData, onSubmit, onCancel, isSubmitting, personas }: BibliotecarioFormProps) {
@@ -95,7 +95,7 @@ function BibliotecarioForm({ currentData, onSubmit, onCancel, isSubmitting, pers
                     <SelectContent>
                       {personas.map((persona) => (
                         <SelectItem key={persona.idPersona} value={persona.idPersona.toString()}>
-                          {persona.nombre} {persona.apellido} (ID: {persona.idPersona})
+                          {persona.nombre} {persona.apellido}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -169,13 +169,12 @@ interface BibliotecarioListProps {
 function BibliotecarioList({ items, onEdit, onDelete }: BibliotecarioListProps) {
    const formatDate = (dateString?: string) => {
     if (!dateString) return 'N/A';
+    // Ensure date is treated as UTC if no timezone info is present
     const date = new Date(dateString.includes('T') ? dateString : `${dateString}T00:00:00Z`);
     return format(date, 'PPP', { locale: es });
   };
   return (
-    <Card>
-      <CardHeader><CardTitle>Lista de Bibliotecarios</CardTitle></CardHeader>
-      <CardContent>
+    <Card><CardHeader><CardTitle>Lista de Bibliotecarios</CardTitle></CardHeader><CardContent>
         {items.length === 0 ? (
           <p className="text-muted-foreground">No hay bibliotecarios registrados o que coincidan con la búsqueda.</p>
         ) : (
@@ -191,9 +190,7 @@ function BibliotecarioList({ items, onEdit, onDelete }: BibliotecarioListProps) 
               </TableBody>
             </Table>
           </div>
-        )}
-      </CardContent>
-    </Card>
+        )}</CardContent></Card>
   );
 }
 
@@ -202,7 +199,7 @@ function BibliotecarioList({ items, onEdit, onDelete }: BibliotecarioListProps) 
 export default function BibliotecariosPage() {
   const [data, setData] = useState<BibliotecariosModel[]>([]);
   const [filteredData, setFilteredData] = useState<BibliotecariosModel[]>([]);
-  const [personas, setPersonas] = useState<PersonasModel[]>([]); // Estado para personas
+  const [personas, setPersonas] = useState<PersonasModel[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [currentItem, setCurrentItem] = useState<BibliotecariosModel | null>(null);
@@ -217,7 +214,7 @@ export default function BibliotecariosPage() {
     try {
       const [bibliotecariosResult, personasResult] = await Promise.all([
         getAllBibliotecarios(),
-        getAllPersonas() // Cargar personas
+        getAllPersonas()
       ]);
       setData(bibliotecariosResult);
       setFilteredData(bibliotecariosResult);
@@ -225,8 +222,8 @@ export default function BibliotecariosPage() {
     } catch (err: any) {
       console.error("Error al cargar datos (BibliotecariosPage):", err);
       let description = "Error al cargar datos iniciales.";
-      if (axios.isAxiosError(err)) {
-        description = err.response?.data?.message || err.message || "Error de red o servidor.";
+       if (axios.isAxiosError(err)) {
+        description = err.response?.data?.message || err.response?.data?.error?.message || err.message || "Error de red o servidor.";
       } else if (err instanceof Error) {
         description = err.message;
       }
@@ -264,14 +261,13 @@ export default function BibliotecariosPage() {
     setIsSubmitting(true);
     try {
       const coercedData = bibliotecarioSchema.parse(formData); 
-      const idPersonaNum = Number(coercedData.idPersona); // Ya es string del select
       const fechaContratacionToSubmit = coercedData.fechaContratacion || undefined;
 
       if (id) {
-        await updateBibliotecario(id, idPersonaNum, fechaContratacionToSubmit, coercedData.turno);
+        await updateBibliotecario(id, coercedData.idPersona, fechaContratacionToSubmit, coercedData.turno);
         toast({ title: "Éxito", description: "Bibliotecario actualizado." });
       } else {
-        await createBibliotecario(idPersonaNum, fechaContratacionToSubmit, coercedData.turno);
+        await createBibliotecario(coercedData.idPersona, fechaContratacionToSubmit, coercedData.turno);
         toast({ title: "Éxito", description: "Bibliotecario creado." });
       }
       setShowForm(false);
@@ -387,10 +383,7 @@ export default function BibliotecariosPage() {
       )}
 
       <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
-        <AlertDialogContent>
-          <AlertDialogHeader><AlertDialogTitle>¿Confirmar eliminación?</AlertDialogTitle><AlertDialogDescription>Esta acción no se puede deshacer. ¿Seguro que quieres eliminar este bibliotecario?</AlertDialogDescription></AlertDialogHeader>
-          <AlertDialogFooter><AlertDialogCancel onClick={() => setShowDeleteConfirm(false)} disabled={isSubmitting}>Cancelar</AlertDialogCancel><AlertDialogAction onClick={handleDelete} disabled={isSubmitting} className="bg-destructive hover:bg-destructive/90">{isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}Eliminar</AlertDialogAction></AlertDialogFooter>
-        </AlertDialogContent>
+        <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>¿Confirmar eliminación?</AlertDialogTitle><AlertDialogDescription>Esta acción no se puede deshacer. ¿Seguro que quieres eliminar este bibliotecario?</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel onClick={() => setShowDeleteConfirm(false)} disabled={isSubmitting}>Cancelar</AlertDialogCancel><AlertDialogAction onClick={handleDelete} disabled={isSubmitting} className="bg-destructive hover:bg-destructive/90">{isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}Eliminar</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
       </AlertDialog>
     </div>
   );

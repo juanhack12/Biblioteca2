@@ -4,7 +4,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import type { LectoresModel, LectoresFormValues, PersonasModel } from '@/lib/types';
 import { getAllLectores, createLector, updateLector, deleteLector } from '@/lib/services/lectores';
-import { getAllPersonas } from '@/lib/services/personas'; // Importar servicio de personas
+import { getAllPersonas } from '@/lib/services/personas';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -32,7 +32,7 @@ interface LectorFormProps {
   onSubmit: (data: LectoresFormValues, id?: number) => Promise<void>;
   onCancel: () => void;
   isSubmitting: boolean;
-  personas: PersonasModel[]; // Lista de personas para el selector
+  personas: PersonasModel[];
 }
 
 function LectorForm({ currentData, onSubmit, onCancel, isSubmitting, personas }: LectorFormProps) {
@@ -97,7 +97,7 @@ function LectorForm({ currentData, onSubmit, onCancel, isSubmitting, personas }:
                     <SelectContent>
                       {personas.map((persona) => (
                         <SelectItem key={persona.idPersona} value={persona.idPersona.toString()}>
-                          {persona.nombre} {persona.apellido} (ID: {persona.idPersona})
+                          {persona.nombre} {persona.apellido}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -171,13 +171,12 @@ interface LectorListProps {
 function LectorList({ items, onEdit, onDelete }: LectorListProps) {
   const formatDate = (dateString?: string) => {
     if (!dateString) return 'N/A';
+    // Ensure date is treated as UTC if no timezone info is present
     const date = new Date(dateString.includes('T') ? dateString : `${dateString}T00:00:00Z`);
     return format(date, 'PPP', { locale: es });
   };
   return (
-    <Card>
-      <CardHeader><CardTitle>Lista de Lectores</CardTitle></CardHeader>
-      <CardContent>
+    <Card><CardHeader><CardTitle>Lista de Lectores</CardTitle></CardHeader><CardContent>
         {items.length === 0 ? (
           <p className="text-muted-foreground">No hay lectores registrados o que coincidan con la búsqueda.</p>
         ) : (
@@ -193,9 +192,7 @@ function LectorList({ items, onEdit, onDelete }: LectorListProps) {
               </TableBody>
             </Table>
           </div>
-        )}
-      </CardContent>
-    </Card>
+        )}</CardContent></Card>
   );
 }
 
@@ -203,7 +200,7 @@ function LectorList({ items, onEdit, onDelete }: LectorListProps) {
 export default function LectoresPage() {
   const [data, setData] = useState<LectoresModel[]>([]);
   const [filteredData, setFilteredData] = useState<LectoresModel[]>([]);
-  const [personas, setPersonas] = useState<PersonasModel[]>([]); // Estado para personas
+  const [personas, setPersonas] = useState<PersonasModel[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [currentItem, setCurrentItem] = useState<LectoresModel | null>(null);
@@ -218,7 +215,7 @@ export default function LectoresPage() {
     try {
       const [lectoresResult, personasResult] = await Promise.all([
         getAllLectores(),
-        getAllPersonas() // Cargar personas
+        getAllPersonas()
       ]);
       setData(lectoresResult);
       setFilteredData(lectoresResult);
@@ -227,7 +224,7 @@ export default function LectoresPage() {
       console.error("Error al cargar datos (LectoresPage):", err);
       let description = "Error al cargar datos iniciales.";
       if (axios.isAxiosError(err)) {
-        description = err.response?.data?.message || err.message || "Error de red o servidor.";
+        description = err.response?.data?.message || err.response?.data?.error?.message || err.message || "Error de red o servidor.";
       } else if (err instanceof Error) {
         description = err.message;
       }
@@ -263,14 +260,13 @@ export default function LectoresPage() {
     setIsSubmitting(true);
     try {
       const coercedData = lectorSchema.parse(formData);
-      const idPersonaNum = Number(coercedData.idPersona); // Ya es string del select
       const fechaRegistroToSubmit = coercedData.fechaRegistro || undefined;
 
       if (id) {
-        await updateLector(id, idPersonaNum, fechaRegistroToSubmit, coercedData.ocupacion);
+        await updateLector(id, coercedData.idPersona, fechaRegistroToSubmit, coercedData.ocupacion);
         toast({ title: "Éxito", description: "Lector actualizado." });
       } else {
-        await createLector(idPersonaNum, fechaRegistroToSubmit, coercedData.ocupacion);
+        await createLector(coercedData.idPersona, fechaRegistroToSubmit, coercedData.ocupacion);
         toast({ title: "Éxito", description: "Lector creado." });
       }
       setShowForm(false); setCurrentItem(null); loadData();
@@ -349,10 +345,7 @@ export default function LectoresPage() {
         </>
       )}
       <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
-        <AlertDialogContent>
-          <AlertDialogHeader><AlertDialogTitle>¿Confirmar eliminación?</AlertDialogTitle><AlertDialogDescription>Esta acción no se puede deshacer. ¿Seguro que quieres eliminar este lector?</AlertDialogDescription></AlertDialogHeader>
-          <AlertDialogFooter><AlertDialogCancel onClick={() => setShowDeleteConfirm(false)} disabled={isSubmitting}>Cancelar</AlertDialogCancel><AlertDialogAction onClick={handleDelete} disabled={isSubmitting} className="bg-destructive hover:bg-destructive/90">{isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}Eliminar</AlertDialogAction></AlertDialogFooter>
-        </AlertDialogContent>
+        <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>¿Confirmar eliminación?</AlertDialogTitle><AlertDialogDescription>Esta acción no se puede deshacer. ¿Seguro que quieres eliminar este lector?</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel onClick={() => setShowDeleteConfirm(false)} disabled={isSubmitting}>Cancelar</AlertDialogCancel><AlertDialogAction onClick={handleDelete} disabled={isSubmitting} className="bg-destructive hover:bg-destructive/90">{isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}Eliminar</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
       </AlertDialog>
     </div>
   );
