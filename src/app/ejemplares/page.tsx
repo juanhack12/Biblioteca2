@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useEffect, useState, useCallback } from 'react';
-import type { EjemplaresModel, EjemplaresFormValues } from '@/lib/types';
+import type { EjemplaresModel, EjemplaresFormValues, LibrosModel } from '@/lib/types';
 import { getAllEjemplares, createEjemplar, updateEjemplar, deleteEjemplar } from '@/lib/services/ejemplares';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -116,9 +116,9 @@ function EjemplarList({ items, onEdit, onDelete }: EjemplarListProps) {
         ) : (
           <div className="overflow-x-auto">
             <Table><TableHeader><TableRow><TableHead>ID Ejemplar</TableHead><TableHead>Título del Libro</TableHead><TableHead>ID Libro</TableHead><TableHead>Ubicación</TableHead><TableHead className="text-right">Acciones</TableHead></TableRow></TableHeader>
-              <TableBody> {/* Hide the "ID Ejemplar" and "ID Libro" columns */}
+              <TableBody>
                 {items.map((item) => (
-                  <TableRow key={item.idEjemplar}><TableCell>{item.idEjemplar}</TableCell><TableCell>{item.tituloLibro || 'N/A'}</TableCell><TableCell>{item.idLibro || 'N/A'}</TableCell><TableCell>{item.ubicacion}</TableCell><TableCell className="text-right space-x-2">
+                  <TableRow key={item.idEjemplar}><TableCell>{item.idEjemplar}</TableCell><TableCell>{item.tituloLibro || 'N/A'}</TableCell><TableCell>{item.idLibro?.toString() || 'N/A'}</TableCell><TableCell>{item.ubicacion}</TableCell><TableCell className="text-right space-x-2">
                       <Button variant="outline" size="icon" onClick={() => onEdit(item)} aria-label="Editar"><Edit className="h-4 w-4" /></Button>
                       <Button variant="destructive" size="icon" onClick={() => onDelete(item.idEjemplar)} aria-label="Eliminar"><Trash2 className="h-4 w-4" /></Button>
                     </TableCell></TableRow>
@@ -155,17 +155,19 @@ export default function EjemplaresPage() {
       console.error("Error al cargar ejemplares (loadData):", err);
       let description = "Error al cargar ejemplares.";
       if (axios.isAxiosError(err)) {
-        description = err.response?.data?.message || err.message || "Error de red o servidor.";
+        description = err.response?.data?.message || err.response?.data?.error || `Error de red o servidor (Code: ${err.code}, Status: ${err.response?.status}). Verifique que la API (${API_BASE_URL}) esté accesible.`;
       } else if (err instanceof Error) {
         description = err.message;
       }
-      toast({ title: "Error", description, variant: "destructive" });
+      toast({ title: "Error de Carga", description, variant: "destructive" });
     } finally {
       setLoading(false);
     }
   }, [toast]);
 
-  useEffect(() => { loadData(); }, [loadData]);
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   useEffect(() => {
     if (!searchTerm) {
@@ -196,21 +198,23 @@ export default function EjemplaresPage() {
         await createEjemplar(idLibroNum, coercedData.ubicacion);
         toast({ title: "Éxito", description: "Ejemplar creado." });
       }
-      setShowForm(false); setCurrentItem(null); loadData();
+      setShowForm(false); 
+      setCurrentItem(null); 
+      loadData();
     } catch (err: any) {
       console.error("Error al guardar ejemplar (handleSubmit):", err);
       let description = "Error al guardar el ejemplar.";
       if (err instanceof z.ZodError) {
-        description = err.errors.map(e => e.message).join(', ');
+        description = err.errors.map(e => `${e.path.join('.')}: ${e.message}`).join('; ');
         toast({ title: "Error de Validación", description, variant: "destructive"});
       } else if (axios.isAxiosError(err)) {
-        description = err.response?.data?.message || err.message || "Error de red o servidor.";
+        description = err.response?.data?.message || err.response?.data?.error || `Error de red o servidor (Code: ${err.code}, Status: ${err.response?.status}).`;
         toast({ title: "Error", description, variant: "destructive" });
       } else if (err instanceof Error) {
         description = err.message;
         toast({ title: "Error", description, variant: "destructive" });
       } else {
-        toast({ title: "Error", description, variant: "destructive" });
+         toast({ title: "Error Desconocido", description, variant: "destructive" });
       }
     } finally {
       setIsSubmitting(false);
@@ -228,32 +232,51 @@ export default function EjemplaresPage() {
       console.error("Error al eliminar ejemplar (handleDelete):", err);
        let description = "Error al eliminar ejemplar.";
        if (axios.isAxiosError(err)) {
-        description = err.response?.data?.message || err.message || "Error de red o servidor.";
+        description = err.response?.data?.message || err.response?.data?.error || `Error de red o servidor (Code: ${err.code}, Status: ${err.response?.status}).`;
       } else if (err instanceof Error) {
         description = err.message;
       }
       toast({ title: "Error", description, variant: "destructive" });
     } finally {
-      setIsSubmitting(false); setShowDeleteConfirm(false); setItemToDelete(null);
+      setIsSubmitting(false); 
+      setShowDeleteConfirm(false); 
+      setItemToDelete(null);
     }
   };
   
-  const handleEdit = (item: EjemplaresModel) => { setCurrentItem(item); setShowForm(true); };
-  const handleAddNew = () => { setCurrentItem(null); setShowForm(true); };
-  const confirmDelete = (id: number) => { setItemToDelete(id); setShowDeleteConfirm(true); };
-  const handleCancelForm = () => { setCurrentItem(null); setShowForm(false); };
+  const handleEdit = (item: EjemplaresModel) => { 
+    setCurrentItem(item); 
+    setShowForm(true); 
+  };
 
-  if (loading && !showForm && data.length === 0) return (
-    <div className="flex justify-center items-center min-h-[calc(100vh-8rem)]">
-      <Loader2 className="h-16 w-16 animate-spin text-primary" />
-      <p className="ml-4 text-lg text-muted-foreground">Cargando ejemplares...</p>
-    </div>
-  );
+  const handleAddNew = () => { 
+    setCurrentItem(null); 
+    setShowForm(true); 
+  };
+  
+  const confirmDelete = (id: number) => { 
+    setItemToDelete(id); 
+    setShowDeleteConfirm(true); 
+  };
+
+  const handleCancelForm = () => { 
+    setCurrentItem(null); 
+    setShowForm(false); 
+  };
+
+  if (loading && !showForm && data.length === 0) {
+    return (
+      <div className="flex justify-center items-center min-h-[calc(100vh-8rem)]">
+        <Loader2 className="h-16 w-16 animate-spin text-primary" />
+        <p className="ml-4 text-lg text-muted-foreground">Cargando ejemplares...</p>
+      </div>
+    );
+  }
   
   return (
-    <div className="container mx-auto py-8 space-y-8"> {/* Added padding and margin */}
-      <div className="flex justify-between items-center mb-6"> {/* Added bottom margin */}
-        <h1 className="text-3xl font-bold text-primary flex items-center gap-3"><Book className="h-8 w-8" />Gestión de Ejemplares</h1> {/* Adjusted spacing */}
+    <div className="container mx-auto py-8 space-y-8">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold text-primary flex items-center gap-3"><Book className="h-8 w-8" />Gestión de Ejemplares</h1>
         {!showForm && ( <Button onClick={handleAddNew} className="shadow-md"><PlusCircle className="mr-2 h-5 w-5" />Agregar Nuevo</Button> )}
       </div>
       {showForm ? ( <EjemplarForm currentData={currentItem} onSubmit={handleSubmit} onCancel={handleCancelForm} isSubmitting={isSubmitting} /> ) 
@@ -265,10 +288,21 @@ export default function EjemplaresPage() {
               placeholder="Buscar por ID, Título, ID Libro o ubicación..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="max-w-md flex-grow" {/* Allow input to grow */}
+              className="max-w-md flex-grow"
             />
           </div>
-          <EjemplarList items={filteredData} onEdit={handleEdit} onDelete={confirmDelete} />
+           {loading && filteredData.length === 0 && searchTerm === '' ? ( // Show loader only if loading and no initial data and no search term
+              <div className="flex justify-center items-center h-40">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                 <p className="ml-2 text-muted-foreground">Cargando...</p>
+              </div>
+            ) : (
+              <EjemplarList
+                items={filteredData}
+                onEdit={handleEdit}
+                onDelete={confirmDelete}
+              />
+            )}
         </>
       )}
       <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
