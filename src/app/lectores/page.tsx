@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useEffect, useState, useCallback } from 'react';
-import type { LectoresModel, LectoresFormValues } from '@/lib/types';
+import type { LectoresModel, LectoresFormValues, LectoresApiResponseDTO } from '@/lib/types';
 import { getAllLectores, createLector, updateLector, deleteLector } from '@/lib/services/lectores';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -88,7 +88,7 @@ function LectorForm({ currentData, onSubmit, onCancel, isSubmitting }: LectorFor
               name="fechaRegistro"
               render={({ field }) => (
                 <FormItem className="flex flex-col">
-                  <FormLabel>Fecha de Registro (Opcional)</FormLabel>
+                  <FormLabel>Fecha de Registro</FormLabel>
                   <Popover>
                     <PopoverTrigger asChild>
                       <FormControl>
@@ -96,7 +96,7 @@ function LectorForm({ currentData, onSubmit, onCancel, isSubmitting }: LectorFor
                           variant={"outline"}
                           className={cn("w-full pl-3 text-left font-normal",!field.value && "text-muted-foreground")}
                         >
-                          {field.value ? (format(new Date(field.value), "PPP", { locale: es })) : (<span>Seleccione una fecha</span>)}
+                          {field.value ? (format(new Date(field.value.includes('T') ? field.value : field.value + 'T00:00:00'), "PPP", { locale: es })) : (<span>Seleccione una fecha</span>)}
                           <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                         </Button>
                       </FormControl>
@@ -104,7 +104,7 @@ function LectorForm({ currentData, onSubmit, onCancel, isSubmitting }: LectorFor
                     <PopoverContent className="w-auto p-0" align="start">
                       <Calendar
                         mode="single"
-                        selected={field.value ? new Date(field.value) : undefined}
+                        selected={field.value ? new Date(field.value.includes('T') ? field.value : field.value + 'T00:00:00') : undefined}
                         onSelect={(date) => field.onChange(date ? format(date, "yyyy-MM-dd") : undefined)}
                         initialFocus
                       />
@@ -148,9 +148,11 @@ interface LectorListProps {
 function LectorList({ items, onEdit, onDelete }: LectorListProps) {
   const formatDate = (dateString?: string) => {
     if (!dateString) return 'N/A';
-    const date = new Date(dateString.includes('T') ? dateString : dateString + 'T00:00:00');
+    // Ensure the dateString is treated as UTC if it doesn't have timezone info
+    const date = new Date(dateString.includes('T') ? dateString : `${dateString}T00:00:00Z`); // Added Z for UTC
     return format(date, 'PPP', { locale: es });
-  };
+  }; // Correctly closed function
+
   return (
     <Card>
       <CardHeader><CardTitle>Lista de Lectores</CardTitle></CardHeader>
@@ -159,10 +161,10 @@ function LectorList({ items, onEdit, onDelete }: LectorListProps) {
           <p className="text-muted-foreground">No hay lectores registrados o que coincidan con la búsqueda.</p>
         ) : (
           <div className="overflow-x-auto">
-            <Table><TableHeader><TableRow><TableHead className=\"hidden\">ID Lector</TableHead><TableHead>Nombre Completo</TableHead><TableHead>Documento</TableHead><TableHead>Fecha Registro</TableHead><TableHead>Ocupación</TableHead><TableHead className=\"text-right\">Acciones</TableHead></TableRow></TableHeader>
+            <Table><TableHeader><TableRow><TableHead className="hidden">ID Lector</TableHead><TableHead>Nombre Completo</TableHead><TableHead>Documento</TableHead><TableHead>Fecha Registro</TableHead><TableHead>Ocupación</TableHead><TableHead className="text-right">Acciones</TableHead></TableRow></TableHeader>
               <TableBody>
                 {items.map((item) => (
-                  <TableRow key={item.idLector}><TableCell>{item.idLector}</TableCell><TableCell>{item.nombre && item.apellido ? `${item.nombre} ${item.apellido}` : (item.idPersona || 'N/A')}</TableCell><TableCell>{item.documentoIdentidad || 'N/A'}</TableCell><TableCell>{formatDate(item.fechaRegistro)}</TableCell><TableCell>{item.ocupacion}</TableCell><TableCell className="text-right space-x-2">
+                  <TableRow key={item.idLector}><TableCell className="hidden">{item.idLector}</TableCell><TableCell>{item.nombre && item.apellido ? `${item.nombre} ${item.apellido}` : (item.idPersona || 'N/A')}</TableCell><TableCell>{item.documentoIdentidad || 'N/A'}</TableCell><TableCell>{formatDate(item.fechaRegistro)}</TableCell><TableCell>{item.ocupacion}</TableCell><TableCell className="text-right space-x-2">
                       <Button variant="outline" size="icon" onClick={() => onEdit(item)} aria-label="Editar"><Edit className="h-4 w-4" /></Button>
                       <Button variant="destructive" size="icon" onClick={() => onDelete(item.idLector)} aria-label="Eliminar"><Trash2 className="h-4 w-4" /></Button>
                     </TableCell></TableRow>
@@ -199,7 +201,13 @@ export default function LectoresPage() {
       console.error("Error al cargar lectores (loadData):", err);
       let description = "Error al cargar lectores.";
       if (axios.isAxiosError(err)) {
-        description = err.response?.data?.message || err.message || "Error de red o servidor.";
+        console.error("Full Axios error object (loadData):", err);
+        console.error("error.message:", err.message);
+        console.error("error.code:", err.code);
+        console.error("error.response?.status:", err.response?.status);
+        console.error("error.response?.data:", err.response?.data);
+        description = err.response?.data?.message || err.response?.data?.error || `Error de red o servidor (Code: ${err.code}, Status: ${err.response?.status}). Verifique que la API (${API_BASE_URL}) esté accesible y configurada correctamente para CORS.`;
+
       } else if (err instanceof Error) {
         description = err.message;
       }
@@ -219,13 +227,18 @@ export default function LectoresPage() {
     const lowercasedFilter = searchTerm.toLowerCase();
     const filtered = data.filter(item => {
       const nombreCompleto = item.nombre && item.apellido ? `${item.nombre} ${item.apellido}`.toLowerCase() : '';
+      const idPersonaStr = item.idPersona?.toString() ?? '';
+      const fechaRegistroStr = item.fechaRegistro?.toLowerCase() ?? ''; // Assuming fechaRegistro is string
+      const ocupacionStr = item.ocupacion?.toLowerCase() ?? '';
+      const documentoIdentidadStr = item.documentoIdentidad?.toLowerCase() ?? '';
+
       return (
         item.idLector.toString().includes(searchTerm) ||
-        (item.idPersona && item.idPersona.toString().includes(searchTerm)) ||
+        idPersonaStr.includes(lowercasedFilter) ||
         nombreCompleto.includes(lowercasedFilter) ||
-        (item.documentoIdentidad && item.documentoIdentidad.toLowerCase().includes(lowercasedFilter)) ||
-        (item.fechaRegistro && item.fechaRegistro.toLowerCase().includes(lowercasedFilter)) ||
-        (item.ocupacion && item.ocupacion.toLowerCase().includes(lowercasedFilter))
+        documentoIdentidadStr.includes(lowercasedFilter) ||
+        fechaRegistroStr.includes(lowercasedFilter) ||
+        ocupacionStr.includes(lowercasedFilter)
       );
     });
     setFilteredData(filtered);
@@ -250,10 +263,11 @@ export default function LectoresPage() {
       console.error("Error al guardar lector (handleSubmit):", err);
       let description = "Error al guardar el lector.";
       if (err instanceof z.ZodError) {
-        description = err.errors.map(e => e.message).join(', ');
+        description = err.errors.map(e => `${e.path.join('.')}: ${e.message}`).join('; ');
         toast({ title: "Error de Validación", description, variant: "destructive"});
       } else if (axios.isAxiosError(err)) {
-        description = err.response?.data?.message || err.message || "Error de red o servidor.";
+         console.error("Full Axios error object (handleSubmit):", err);
+        description = err.response?.data?.message || err.response?.data?.error || `Error de red o servidor (Code: ${err.code}, Status: ${err.response?.status}).`;
         toast({ title: "Error", description, variant: "destructive" });
       } else if (err instanceof Error) {
         description = err.message;
@@ -273,11 +287,12 @@ export default function LectoresPage() {
       await deleteLector(itemToDelete);
       toast({ title: "Éxito", description: "Lector eliminado." });
       loadData();
-    } catch (err: any) {
+    } catch (err: any)
+     {
       console.error("Error al eliminar lector (handleDelete):", err);
       let description = "Error al eliminar lector.";
-      if (axios.isAxiosError(err)) {
-        description = err.response?.data?.message || err.message || "Error de red o servidor.";
+       if (axios.isAxiosError(err)) {
+        description = err.response?.data?.message || err.response?.data?.error || `Error de red o servidor (Code: ${err.code}, Status: ${err.response?.status}).`;
       } else if (err instanceof Error) {
         description = err.message;
       }
@@ -300,7 +315,7 @@ export default function LectoresPage() {
   );
   
   return (
-    <div className="space-y-8">
+    <div className="container mx-auto py-8 px-4 space-y-8">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold text-primary flex items-center"><Users className="mr-3 h-8 w-8" />Gestión de Lectores</h1>
         {!showForm && ( <Button onClick={handleAddNew} className="shadow-md"><PlusCircle className="mr-2 h-5 w-5" />Agregar Nuevo</Button> )}
@@ -317,7 +332,18 @@ export default function LectoresPage() {
               className="max-w-md"
             />
           </div>
-          <LectorList items={filteredData} onEdit={handleEdit} onDelete={confirmDelete} />
+          {loading && filteredData.length === 0 && searchTerm === '' ? (
+             <div className="flex justify-center items-center h-40">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <p className="ml-2 text-muted-foreground">Cargando...</p>
+              </div>
+          ) : (
+            <LectorList
+              items={filteredData}
+              onEdit={handleEdit}
+              onDelete={confirmDelete}
+            />
+          )}
         </>
       )}
       <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
