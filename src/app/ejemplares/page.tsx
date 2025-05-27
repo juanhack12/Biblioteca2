@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useEffect, useState, useCallback } from 'react';
-import type { EjemplaresModel, EjemplaresFormValues } from '@/lib/types';
+import type { EjemplaresModel, EjemplaresFormValues, LibrosModel } from '@/lib/types';
 import { getAllEjemplares, createEjemplar, updateEjemplar, deleteEjemplar } from '@/lib/services/ejemplares';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,7 +17,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { ejemplarSchema } from '@/lib/schemas';
 import { z } from 'zod'; 
 import axios from 'axios';
-import { API_BASE_URL } from '@/lib/api-config';
+// API_BASE_URL is not used directly in this component, it's used by services
+// import { API_BASE_URL } from '@/lib/api-config';
 
 // EjemplarForm Component
 interface EjemplarFormProps {
@@ -40,7 +41,7 @@ function EjemplarForm({ currentData, onSubmit, onCancel, isSubmitting }: Ejempla
     if (currentData) {
       form.reset({
         idLibro: currentData.idLibro?.toString() ?? '',
-        ubicacion: currentData.ubicacion,
+        ubicacion: currentData.ubicacion || '', // Ensure this is not undefined
       });
     } else {
       form.reset({
@@ -55,9 +56,11 @@ function EjemplarForm({ currentData, onSubmit, onCancel, isSubmitting }: Ejempla
   };
 
   return (
-    <Card className="max-w-2xl mx-auto">
+    <Card className="max-w-2xl mx-auto shadow-lg rounded-lg">
       <CardHeader>
-        <CardTitle>{currentData ? 'Editar Ejemplar' : 'Crear Nuevo Ejemplar'}</CardTitle>
+        <CardTitle className="text-2xl font-semibold text-primary">
+          {currentData ? 'Editar Ejemplar' : 'Crear Nuevo Ejemplar'}
+        </CardTitle>
       </CardHeader>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(handleSubmitForm)}>
@@ -69,7 +72,13 @@ function EjemplarForm({ currentData, onSubmit, onCancel, isSubmitting }: Ejempla
                 <FormItem>
                   <FormLabel>ID Libro</FormLabel>
                   <FormControl>
-                    <Input type="number" placeholder="Ej: 101" {...field} onChange={e => field.onChange(e.target.value)} value={field.value ?? ''} />
+                    <Input 
+                      type="number" 
+                      placeholder="Ej: 101" 
+                      {...field} 
+                      onChange={e => field.onChange(e.target.value)} 
+                      value={field.value ?? ''} 
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -82,7 +91,12 @@ function EjemplarForm({ currentData, onSubmit, onCancel, isSubmitting }: Ejempla
                 <FormItem>
                   <FormLabel>Ubicación</FormLabel>
                   <FormControl>
-                    <Input placeholder="Ej: Estante A-3, Fila 2" {...field} onChange={e => field.onChange(e.target.value)} value={field.value ?? ''} />
+                    <Input 
+                      placeholder="Ej: Estante A-3, Fila 2" 
+                      {...field} 
+                      onChange={e => field.onChange(e.target.value)} 
+                      value={field.value ?? ''} 
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -91,7 +105,9 @@ function EjemplarForm({ currentData, onSubmit, onCancel, isSubmitting }: Ejempla
           </CardContent>
           <CardFooter className="flex justify-end space-x-4">
             <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>Cancelar</Button>
-            <Button type="submit" disabled={isSubmitting}>{isSubmitting ? (currentData ? 'Actualizando...' : 'Creando...') : (currentData ? 'Actualizar' : 'Crear')}</Button>
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? (currentData ? 'Actualizando...' : 'Creando...') : (currentData ? 'Actualizar' : 'Crear')}
+            </Button>
           </CardFooter>
         </form>
       </Form>
@@ -108,17 +124,17 @@ interface EjemplarListProps {
 
 function EjemplarList({ items, onEdit, onDelete }: EjemplarListProps) {
   return (
-    <Card>
-      <CardHeader><CardTitle>Lista de Ejemplares</CardTitle></CardHeader>
+    <Card className="shadow-md rounded-lg">
+      <CardHeader><CardTitle className="text-xl font-semibold text-primary">Lista de Ejemplares</CardTitle></CardHeader>
       <CardContent>
         {items.length === 0 ? (
-          <p className="text-muted-foreground">No hay ejemplares registrados o que coincidan con la búsqueda.</p>
+          <p className="text-muted-foreground text-center py-4">No hay ejemplares registrados o que coincidan con la búsqueda.</p>
         ) : (
           <div className="overflow-x-auto">
-            <Table><TableHeader><TableRow><TableHead>ID Ejemplar</TableHead><TableHead>Título del Libro</TableHead><TableHead>ID Libro</TableHead><TableHead>Ubicación</TableHead><TableHead className="text-right">Acciones</TableHead></TableRow></TableHeader>
-              <TableBody>
+            <Table><TableHeader><TableRow><TableHead className="w-[120px]">ID Ejemplar</TableHead><TableHead>Título del Libro</TableHead><TableHead>Ubicación</TableHead><TableHead className="text-right w-[120px]">Acciones</TableHead></TableRow></TableHeader>
+            <TableBody>
                 {items.map((item) => (
-                  <TableRow key={item.idEjemplar}><TableCell>{item.idEjemplar}</TableCell><TableCell>{item.tituloLibro || 'N/A'}</TableCell><TableCell>{item.idLibro || 'N/A'}</TableCell><TableCell>{item.ubicacion}</TableCell><TableCell className="text-right space-x-2">
+                  <TableRow key={item.idEjemplar} className="hover:bg-muted/50"><TableCell>{item.idEjemplar}</TableCell><TableCell>{item.tituloLibro || 'N/A'}</TableCell><TableCell>{item.ubicacion}</TableCell><TableCell className="text-right space-x-2">
                       <Button variant="outline" size="icon" onClick={() => onEdit(item)} aria-label="Editar"><Edit className="h-4 w-4" /></Button>
                       <Button variant="destructive" size="icon" onClick={() => onDelete(item.idEjemplar)} aria-label="Eliminar"><Trash2 className="h-4 w-4" /></Button>
                     </TableCell></TableRow>
@@ -150,22 +166,34 @@ export default function EjemplaresPage() {
     try {
       const result = await getAllEjemplares();
       setData(result);
-      setFilteredData(result);
+      setFilteredData(result); // Initialize filteredData
     } catch (err: any) {
       console.error("Error al cargar ejemplares (loadData):", err);
       let description = "Error al cargar ejemplares.";
       if (axios.isAxiosError(err)) {
         description = err.response?.data?.message || err.message || "Error de red o servidor.";
+         console.error("Full Axios error object (loadData - Ejemplares):", {
+          message: err.message,
+          code: err.code,
+          status: err.response?.status,
+          data: err.response?.data,
+          url: err.config?.url,
+          isAxiosError: err.isAxiosError,
+          request: !!err.request,
+          response: !!err.response,
+        });
       } else if (err instanceof Error) {
         description = err.message;
       }
-      toast({ title: "Error", description, variant: "destructive" });
+      toast({ title: "Error de Carga", description, variant: "destructive" });
     } finally {
       setLoading(false);
     }
   }, [toast]);
 
-  useEffect(() => { loadData(); }, [loadData]);
+  useEffect(() => { 
+    loadData(); 
+  }, [loadData]);
 
   useEffect(() => {
     if (!searchTerm) {
@@ -176,7 +204,7 @@ export default function EjemplaresPage() {
     const filtered = data.filter(item => {
       return (
         item.idEjemplar.toString().includes(searchTerm) ||
-        (item.idLibro && item.idLibro.toString().includes(searchTerm)) ||
+        (item.idLibro && item.idLibro.toString().includes(searchTerm)) || // Search by ID Libro
         (item.tituloLibro && item.tituloLibro.toLowerCase().includes(lowercasedFilter)) ||
         (item.ubicacion && item.ubicacion.toLowerCase().includes(lowercasedFilter))
       );
@@ -188,7 +216,7 @@ export default function EjemplaresPage() {
     setIsSubmitting(true);
     try {
       const coercedData = ejemplarSchema.parse(formData);
-      const idLibroNum = Number(coercedData.idLibro);
+      const idLibroNum = Number(coercedData.idLibro); // idLibro is string from form, coerce to number
       if (id) {
         await updateEjemplar(id, idLibroNum, coercedData.ubicacion);
         toast({ title: "Éxito", description: "Ejemplar actualizado." });
@@ -196,21 +224,33 @@ export default function EjemplaresPage() {
         await createEjemplar(idLibroNum, coercedData.ubicacion);
         toast({ title: "Éxito", description: "Ejemplar creado." });
       }
-      setShowForm(false); setCurrentItem(null); loadData();
+      setShowForm(false); 
+      setCurrentItem(null); 
+      loadData();
     } catch (err: any) {
       console.error("Error al guardar ejemplar (handleSubmit):", err);
       let description = "Error al guardar el ejemplar.";
       if (err instanceof z.ZodError) {
-        description = err.errors.map(e => e.message).join(', ');
+        description = err.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ');
         toast({ title: "Error de Validación", description, variant: "destructive"});
       } else if (axios.isAxiosError(err)) {
         description = err.response?.data?.message || err.message || "Error de red o servidor.";
         toast({ title: "Error", description, variant: "destructive" });
+         console.error("Full Axios error object (handleSubmit - Ejemplares):", {
+          message: err.message,
+          code: err.code,
+          status: err.response?.status,
+          data: err.response?.data,
+          url: err.config?.url,
+          isAxiosError: err.isAxiosError,
+          request: !!err.request,
+          response: !!err.response,
+        });
       } else if (err instanceof Error) {
         description = err.message;
         toast({ title: "Error", description, variant: "destructive" });
       } else {
-        toast({ title: "Error", description, variant: "destructive" });
+         toast({ title: "Error", description, variant: "destructive" });
       }
     } finally {
       setIsSubmitting(false);
@@ -234,7 +274,9 @@ export default function EjemplaresPage() {
       }
       toast({ title: "Error", description, variant: "destructive" });
     } finally {
-      setIsSubmitting(false); setShowDeleteConfirm(false); setItemToDelete(null);
+      setIsSubmitting(false); 
+      setShowDeleteConfirm(false); 
+      setItemToDelete(null);
     }
   };
   
@@ -243,17 +285,19 @@ export default function EjemplaresPage() {
   const confirmDelete = (id: number) => { setItemToDelete(id); setShowDeleteConfirm(true); };
   const handleCancelForm = () => { setCurrentItem(null); setShowForm(false); };
 
-  if (loading && !showForm && data.length === 0) return (
-    <div className="flex justify-center items-center min-h-[calc(100vh-8rem)]">
-      <Loader2 className="h-16 w-16 animate-spin text-primary" />
-      <p className="ml-4 text-lg text-muted-foreground">Cargando ejemplares...</p>
-    </div>
-  );
+  if (loading && !showForm && filteredData.length === 0 && !searchTerm) {
+    return (
+      <div className="flex justify-center items-center min-h-[calc(100vh-8rem)]">
+        <Loader2 className="h-16 w-16 animate-spin text-primary" />
+        <p className="ml-4 text-lg text-muted-foreground">Cargando ejemplares...</p>
+      </div>
+    );
+  }
   
   return (
-    <div className="space-y-8">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold text-primary flex items-center"><Book className="mr-3 h-8 w-8" />Gestión de Ejemplares</h1>
+    <div className="container mx-auto py-8 space-y-8">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold text-primary flex items-center gap-3"><Book className="h-8 w-8" />Gestión de Ejemplares</h1>
         {!showForm && ( <Button onClick={handleAddNew} className="shadow-md"><PlusCircle className="mr-2 h-5 w-5" />Agregar Nuevo</Button> )}
       </div>
       {showForm ? ( <EjemplarForm currentData={currentItem} onSubmit={handleSubmit} onCancel={handleCancelForm} isSubmitting={isSubmitting} /> ) 
