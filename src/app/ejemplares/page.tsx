@@ -116,7 +116,7 @@ function EjemplarList({ items, onEdit, onDelete }: EjemplarListProps) {
         ) : (
           <div className="overflow-x-auto">
             <Table><TableHeader><TableRow><TableHead>ID Ejemplar</TableHead><TableHead>Título del Libro</TableHead><TableHead>ID Libro</TableHead><TableHead>Ubicación</TableHead><TableHead className="text-right">Acciones</TableHead></TableRow></TableHeader>
-              <TableBody>
+            <TableBody>
                 {items.map((item) => (
                   <TableRow key={item.idEjemplar}><TableCell>{item.idEjemplar}</TableCell><TableCell>{item.tituloLibro || 'N/A'}</TableCell><TableCell>{item.idLibro || 'N/A'}</TableCell><TableCell>{item.ubicacion}</TableCell><TableCell className="text-right space-x-2">
                       <Button variant="outline" size="icon" onClick={() => onEdit(item)} aria-label="Editar"><Edit className="h-4 w-4" /></Button>
