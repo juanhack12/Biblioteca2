@@ -1,18 +1,20 @@
 // src/lib/services/libros.ts
 import axios from 'axios';
 import type { LibrosModel, LibrosApiResponseDTO, EditorialesModel } from '@/lib/types';
-import { API_BASE_URL } from '@/lib/api-config';
+import { API_BASE_URL } from '@/lib/api-config'; // Asegúrate de que esta línea esté presente
+
+const API_URL = `${API_BASE_URL}/Libros`; // Define API_URL usando API_BASE_URL
 
 // Helper function to transform API DTO response to LibrosModel
 const transformLibroData = (dto: LibrosApiResponseDTO): LibrosModel => {
+  // El DTO del backend tiene 'Nombre' (nombre de la editorial) y 'Editoriales' (el objeto editorial)
+  // y 'AnioPublicacion' como int?
   return {
     idLibro: Number(dto.idLibro),
     titulo: dto.titulo,
-    // Backend anioPublicacion es int?, frontend lo maneja como string para el form
-    anioPublicacion: dto.anioPublicacion?.toString() || '', 
+    anioPublicacion: dto.anioPublicacion?.toString() ?? '', // Frontend lo maneja como string
     idEditorial: Number(dto.idEditorial),
-    // El DTO ahora tiene 'Nombre' (nombre de la editorial) y 'Editoriales' (el objeto editorial)
-    nombreEditorial: dto.nombre || dto.editoriales?.nombre, 
+    nombreEditorial: dto.nombre || dto.editoriales?.nombre, // Usar el campo 'Nombre' si está, o el del objeto anidado
     editorial: dto.editoriales ? {
         idEditorial: Number(dto.editoriales.idEditorial),
         nombre: dto.editoriales.nombre,
@@ -20,11 +22,20 @@ const transformLibroData = (dto: LibrosApiResponseDTO): LibrosModel => {
         ciudad: dto.editoriales.ciudad,
         sitioWeb: dto.editoriales.sitioWeb || '',
     } : undefined,
-    // isbn y summary no vienen de los endpoints estándar de Get, podrían venir de otros flujos.
-    // isbn: dto.isbn, 
-    // summary: dto.summary,
   };
 };
+
+// Para cuando el backend devuelve LibrosModel directamente (ej. en Create/Update)
+const transformBasicLibroData = (model: any): LibrosModel => {
+  return {
+    idLibro: Number(model.idLibro),
+    titulo: model.titulo,
+    anioPublicacion: model.anioPublicacion?.toString() ?? '',
+    idEditorial: Number(model.idEditorial),
+    // nombreEditorial y editorial serán undefined aquí si no vienen del backend en este contexto
+  };
+};
+
 
 export const getAllLibros = async (): Promise<LibrosModel[]> => {
   const response = await axios.get<LibrosApiResponseDTO[]>(API_URL);
@@ -37,32 +48,18 @@ export const getLibroById = async (id: number): Promise<LibrosModel> => {
 };
 
 // El backend espera titulo, anioPublicacion (int), idEditorial (int)
+// El controller de Libros devuelve LibrosModel, no LibrosDTO para Create/Update.
 export const createLibro = async (
   titulo: string,
-  anioPublicacion: string, // Frontend maneja como string, backend espera int
+  anioPublicacion: string,
   idEditorial: number
 ): Promise<LibrosModel> => {
   const anioPublicacionNum = parseInt(anioPublicacion, 10); 
-  // La respuesta de create es LibrosModel según el controller, no LibrosDTO.
-  // Asumimos que el backend no devuelve la editorial anidada al crear.
-  // Si la devolviera como DTO, necesitaríamos ajustar.
-  const response = await axios.post<any>( // Usamos 'any' y luego transformamos selectivamente
+  const response = await axios.post<any>(
     `${API_URL}/${encodeURIComponent(titulo)}/${anioPublicacionNum}/${idEditorial}`
   );
-  // Para consistencia, si create devuelve solo LibrosModel básico, lo mapeamos
-  // y los campos de editorial (nombreEditorial, editorial) serían undefined.
-  // Si create devuelve LibrosDTO, este transformador funcionará.
-  // El controller dice: Task<ActionResult<LibrosModel>> CreateLibro
-  // por lo que NO vendrá el DTO completo al crear.
-  // Lo más seguro es mapear solo los campos que sabemos que vienen.
-  const createdLibroData = response.data;
-  return {
-    idLibro: Number(createdLibroData.idLibro),
-    titulo: createdLibroData.titulo,
-    anioPublicacion: createdLibroData.anioPublicacion?.toString() || '',
-    idEditorial: Number(createdLibroData.idEditorial),
-    // nombreEditorial y editorial serán undefined aquí, a menos que el backend cambie.
-  };
+  // La respuesta es LibrosModel básico del backend, lo transformamos
+  return transformBasicLibroData(response.data);
 };
 
 export const updateLibro = async (
@@ -83,18 +80,11 @@ export const updateLibro = async (
   if (params.toString()) {
     url += `?${params.toString()}`;
   }
-  // Similar a create, el controller devuelve LibrosModel, no DTO.
   const response = await axios.put<any>(url);
-  const updatedLibroData = response.data;
-   return {
-    idLibro: Number(updatedLibroData.idLibro),
-    titulo: updatedLibroData.titulo,
-    anioPublicacion: updatedLibroData.anioPublicacion?.toString() || '',
-    idEditorial: Number(updatedLibroData.idEditorial),
-  };
+  // La respuesta es LibrosModel básico del backend
+  return transformBasicLibroData(response.data);
 };
 
 export const deleteLibro = async (id: number): Promise<void> => {
-  // El controller devuelve LibrosModel, no necesitamos transformar la respuesta de delete si no la usamos.
   await axios.delete<any>(`${API_URL}/${id}`);
 };
