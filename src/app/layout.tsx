@@ -67,14 +67,14 @@ export default function RootLayout({
                         info@bibliotech.com
                       </a>
                     </p>
-                    <p>Teléfono: +123 456 7890</p>
+                    <p>Teléfono: +57 312 345 6789</p>
                   </div>
                 </div>
                 <div>
                   <h3 className="font-semibold text-foreground mb-2">Ubicación</h3>
                   <p className="flex items-start">
                     <MapPin className="h-4 w-4 mr-2 mt-0.5 shrink-0 text-primary" />
-                    <span>Calle Falsa 123, Ciudad Ejemplo, CP 08001</span>
+                    <span>Autopista Chía - Cajicá, Sector "El Cuarenta"</span>
                   </p>
                 </div>
               </div>
@@ -86,7 +86,7 @@ export default function RootLayout({
                   <div className="flex items-start">
                     <Clock className="h-4 w-4 mr-2 mt-0.5 shrink-0 text-primary" />
                     <span>
-                      Lunes a Viernes: 9am - 8pm<br/>
+                      Lunes a Viernes: 8am - 6pm<br/>
                       Sábados: 10am - 4pm<br/>
                       Domingos: Cerrado
                     </span>
