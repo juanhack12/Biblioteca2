@@ -1,7 +1,7 @@
 // src/lib/api-config.ts
 import type { DateOnlyString } from '@/lib/types';
 
-export const API_BASE_URL = 'http://www.bibliotecaapiuddec.somee.com'; // Updated API base URL
+export const API_BASE_URL = 'https://localhost:7245'; // Updated API base URL
 
 // Función auxiliar para formatear DateOnlyString para input[type="date"] o API calls
 // Ensures that if a date string is provided, it's used, otherwise returns undefined.
